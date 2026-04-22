@@ -16,10 +16,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -27,10 +24,7 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.windows:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for windows - '
@@ -58,4 +52,25 @@ class DefaultFirebaseOptions {
   }
 
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyCZ7tSS1UR7ZQWZA4HknxQP2k_krXVamEg',
+    appId: '1:212214398916:web:218dc04cbb2318cdb26e91',
+    messagingSenderId: '212214398916',
+    projectId: 'bolao-copa-do-mundo-salles',
+    authDomain: 'bolao-copa-do-mundo-salles.firebaseapp.com',
+    storageBucket: 'bolao-copa-do-mundo-salles.firebasestorage.app',
+    measurementId: 'G-SW7PRWHM56',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyBVIjPKmxcaiVN1x0zEQOJVZUd8CqfOMRE',
+    appId: '1:212214398916:ios:b9d3161018a1be4eb26e91',
+    messagingSenderId: '212214398916',
+    projectId: 'bolao-copa-do-mundo-salles',
+    storageBucket: 'bolao-copa-do-mundo-salles.firebasestorage.app',
+    iosClientId: '212214398916-j17cmqger48mjdvf3ithep459p2aabuj.apps.googleusercontent.com',
+    iosBundleId: 'com.salles.bolaocopadomundo',
+  );
+
 }

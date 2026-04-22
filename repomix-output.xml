@@ -106,59 +106,19 @@ lib/features/matches/widgets/match_list_tab.dart
 lib/features/matches/widgets/score_control.dart
 lib/features/matches/widgets/team_block.dart
 lib/features/ranking/ranking_screen.dart
+lib/firebase_options.dart
 lib/main.dart
 lib/services/auth_service.dart
 lib/services/firestore_service.dart
 pubspec.lock
 pubspec.yaml
 test/widget_test.dart
+web/index.html
+web/manifest.json
 </directory_structure>
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="ios/Podfile">
-platform :ios, '15.0'
-
-ENV['COCOAPODS_DISABLE_STATS'] = 'true'
-
-project 'Runner', {
-  'Debug' => :debug,
-  'Profile' => :release,
-  'Release' => :release,
-}
-
-def flutter_root
-  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-  unless File.exist?(generated_xcode_build_settings_path)
-    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
-  end
-
-  File.foreach(generated_xcode_build_settings_path) do |line|
-    matches = line.match(/FLUTTER_ROOT\=(.*)/)
-    return matches[1].strip if matches
-  end
-  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}"
-end
-
-require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
-
-flutter_ios_podfile_setup
-
-target 'Runner' do
-  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-
-  target 'RunnerTests' do
-    inherit! :search_paths
-  end
-end
-
-post_install do |installer|
-  installer.pods_project.targets.each do |target|
-    flutter_additional_ios_build_settings(target)
-  end
-end
-</file>
 
 <file path="analysis_options.yaml">
 # This file configures the analyzer, which statically analyzes Dart code to
@@ -246,38 +206,6 @@ android {
 
 flutter {
     source = "../.."
-}
-</file>
-
-<file path="android/app/google-services.json">
-{
-  "project_info": {
-    "project_number": "212214398916",
-    "project_id": "bolao-copa-do-mundo-salles",
-    "storage_bucket": "bolao-copa-do-mundo-salles.firebasestorage.app"
-  },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:212214398916:android:56b9db4e84c71cdab26e91",
-        "android_client_info": {
-          "package_name": "com.seunome.bolao_copa"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDpz0YeMhxXwCO39fognthNL0hyztcPNgU"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    }
-  ],
-  "configuration_version": "1"
 }
 </file>
 
@@ -384,37 +312,6 @@ plugins {
 }
 
 include(":app")
-</file>
-
-<file path="firebase.json">
-{
-  "flutter": {
-    "platforms": {
-      "android": {
-        "default": {
-          "projectId": "bolao-copa-do-mundo-salles",
-          "appId": "1:212214398916:android:56b9db4e84c71cdab26e91",
-          "fileOutput": "android/app/google-services.json"
-        }
-      },
-      "dart": {
-        "lib/firebase_options.dart": {
-          "projectId": "bolao-copa-do-mundo-salles",
-          "configurations": {
-            "android": "1:212214398916:android:56b9db4e84c71cdab26e91",
-            "ios": "1:212214398916:ios:653b33fb963832ffb26e91"
-          }
-        }
-      }
-    }
-  },
-  "firestore": {
-    "database": "(default)",
-    "location": "southamerica-east1",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  }
-}
 </file>
 
 <file path="firestore.indexes.json">
@@ -544,43 +441,6 @@ import UIKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
 }
-</file>
-
-<file path="ios/Runner/GoogleService-Info.plist">
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>CLIENT_ID</key>
-	<string>212214398916-f62kvknt6rufcfhlktao7k8qja0e80i0.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.212214398916-f62kvknt6rufcfhlktao7k8qja0e80i0</string>
-	<key>API_KEY</key>
-	<string>AIzaSyBVIjPKmxcaiVN1x0zEQOJVZUd8CqfOMRE</string>
-	<key>GCM_SENDER_ID</key>
-	<string>212214398916</string>
-	<key>PLIST_VERSION</key>
-	<string>1</string>
-	<key>BUNDLE_ID</key>
-	<string>com.bolaocopadomundo</string>
-	<key>PROJECT_ID</key>
-	<string>bolao-copa-do-mundo-salles</string>
-	<key>STORAGE_BUCKET</key>
-	<string>bolao-copa-do-mundo-salles.firebasestorage.app</string>
-	<key>IS_ADS_ENABLED</key>
-	<false></false>
-	<key>IS_ANALYTICS_ENABLED</key>
-	<false></false>
-	<key>IS_APPINVITE_ENABLED</key>
-	<true></true>
-	<key>IS_GCM_ENABLED</key>
-	<true></true>
-	<key>IS_SIGNIN_ENABLED</key>
-	<true></true>
-	<key>GOOGLE_APP_ID</key>
-	<string>1:212214398916:ios:b6bc351b7c8afb28b26e91</string>
-</dict>
-</plist>
 </file>
 
 <file path="ios/Runner/Info.plist">
@@ -7509,6 +7369,70 @@ class _PosicaoWidget extends StatelessWidget {
 }
 </file>
 
+<file path="lib/firebase_options.dart">
+// File generated by FlutterFire CLI.
+// ignore_for_file: type=lint
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+/// Default [FirebaseOptions] for use with your Firebase apps.
+///
+/// Example:
+/// ```dart
+/// import 'firebase_options.dart';
+/// // ...
+/// await Firebase.initializeApp(
+///   options: DefaultFirebaseOptions.currentPlatform,
+/// );
+/// ```
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.macOS:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.windows:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.linux:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for linux - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
+    }
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDpz0YeMhxXwCO39fognthNL0hyztcPNgU',
+    appId: '1:212214398916:android:56b9db4e84c71cdab26e91',
+    messagingSenderId: '212214398916',
+    projectId: 'bolao-copa-do-mundo-salles',
+    storageBucket: 'bolao-copa-do-mundo-salles.firebasestorage.app',
+  );
+
+  }
+
+  );
+}
+</file>
+
 <file path="lib/main.dart">
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8412,6 +8336,222 @@ void main() {
     expect(find.text('1'), findsOneWidget);
   });
 }
+</file>
+
+<file path="web/index.html">
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="bolao_copa">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>bolao_copa</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
+</file>
+
+<file path="web/manifest.json">
+{
+    "name": "bolao_copa",
+    "short_name": "bolao_copa",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0175C2",
+    "theme_color": "#0175C2",
+    "description": "A new Flutter project.",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
+</file>
+
+<file path="firebase.json">
+{"flutter":{"platforms":{"android":{"default":{"projectId":"bolao-copa-do-mundo-salles","appId":"1:212214398916:android:56b9db4e84c71cdab26e91","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"bolao-copa-do-mundo-salles","configurations":{"android":"1:212214398916:android:56b9db4e84c71cdab26e91","ios":"1:212214398916:ios:b9d3161018a1be4eb26e91"}}}}},"firestore":{"database":"(default)","location":"southamerica-east1","rules":"firestore.rules","indexes":"firestore.indexes.json"}}
+</file>
+
+<file path="ios/Runner/GoogleService-Info.plist">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>212214398916-j17cmqger48mjdvf3ithep459p2aabuj.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.212214398916-j17cmqger48mjdvf3ithep459p2aabuj</string>
+	<key>API_KEY</key>
+	<string>AIzaSyBVIjPKmxcaiVN1x0zEQOJVZUd8CqfOMRE</string>
+	<key>GCM_SENDER_ID</key>
+	<string>212214398916</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.salles.bolaocopadomundo</string>
+	<key>PROJECT_ID</key>
+	<string>bolao-copa-do-mundo-salles</string>
+	<key>STORAGE_BUCKET</key>
+	<string>bolao-copa-do-mundo-salles.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:212214398916:ios:b9d3161018a1be4eb26e91</string>
+</dict>
+</plist>
+</file>
+
+<file path="android/app/google-services.json">
+{
+  "project_info": {
+    "project_number": "212214398916",
+    "project_id": "bolao-copa-do-mundo-salles",
+    "storage_bucket": "bolao-copa-do-mundo-salles.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:212214398916:android:56b9db4e84c71cdab26e91",
+        "android_client_info": {
+          "package_name": "com.seunome.bolao_copa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "212214398916-fugto03jv5ji4j5els9ctivahgismnlg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDpz0YeMhxXwCO39fognthNL0hyztcPNgU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "212214398916-fugto03jv5ji4j5els9ctivahgismnlg.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "212214398916-f62kvknt6rufcfhlktao7k8qja0e80i0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.seunome.bolaocopadomundo"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
+</file>
+
+<file path="ios/Podfile">
+platform :ios, '15.0'
+use_modular_headers!
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. Run flutter pub get first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+end
 </file>
 
 </files>
