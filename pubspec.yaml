@@ -1,7 +1,7 @@
 name: bolao_copa
 description: Bolão da Copa do Mundo
 publish_to: 'none'
-version: 1.0.4+12
+version: 1.0.4+13
 environment:
   sdk: '>=3.0.0 <4.0.0'
 dependencies:
