@@ -25,7 +25,7 @@ Future<void> mostrarSobre(BuildContext context) async {
           const SizedBox(height: 12),
           const Center(
             child: Text(
-              'Bolão Copa',
+              'Bolão Entre Amigos',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),

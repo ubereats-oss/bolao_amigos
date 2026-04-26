@@ -193,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           size: 80, color: Color(0xFF1A6B3C)),
                       const SizedBox(height: 16),
                       const Text(
-                        'Bolão Copa',
+                        'Bolão Entre Amigos',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,

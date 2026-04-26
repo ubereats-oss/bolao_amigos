@@ -1,4 +1,4 @@
-// Chaveamento da Copa 2026
+// Chaveamento da fase eliminatória
 // Slots de 3º colocado: lista de grupos candidatos
 // O app resolve qual time ocupa cada slot em função dos palpites do usuário.
 
@@ -39,7 +39,7 @@ class BracketData {
     '3rd': '3º Lugar',
   };
 
-  /// Round of 32 — chaveamento oficial Copa 2026
+  /// Round of 32 — chaveamento oficial da fase eliminatória
   static const List<BracketMatchDef> r32 = [
     BracketMatchDef(
         id: 'r32_01',

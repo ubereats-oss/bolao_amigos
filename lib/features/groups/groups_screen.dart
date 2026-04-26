@@ -215,7 +215,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bolão Copa'),
+        title: const Text('Bolão Entre Amigos'),
         backgroundColor: const Color(0xFF1A6B3C),
         foregroundColor: Colors.white,
         actions: [
