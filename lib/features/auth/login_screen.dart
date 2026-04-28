@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../services/auth_service.dart';
 import '../../core/routes/app_routes.dart';
 import '../../core/widgets/sobre_dialog.dart';
@@ -83,16 +85,27 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/groups');
       }
-    } on Exception catch (e) {
-      setState(() {
-        _erro = _traduzirErro(e.toString());
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        if (mounted) setState(() => _loading = false);
+        return;
       }
+      final msg = switch (e.code) {
+        AuthorizationErrorCode.failed =>
+          'Falha na autenticação com Apple. Verifique as configurações da sua conta.',
+        AuthorizationErrorCode.invalidResponse =>
+          'Resposta inválida da Apple. Tente novamente.',
+        AuthorizationErrorCode.notHandled =>
+          'Autenticação Apple não pôde ser concluída. Tente novamente.',
+        AuthorizationErrorCode.unknown =>
+          'Erro desconhecido na autenticação Apple. Tente novamente.',
+        _ => 'Erro ao entrar com Apple: ${e.message}',
+      };
+      if (mounted) setState(() => _erro = msg);
+    } on Exception catch (e) {
+      if (mounted) setState(() => _erro = _traduzirErro(e.toString()));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -260,15 +273,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           label: const Text('Entrar com Google'),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _loading ? null : _loginApple,
-                          icon: const Icon(Icons.apple),
-                          label: const Text('Entrar com Apple'),
+                      if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SignInWithAppleButton(
+                            onPressed: _loading ? () {} : _loginApple,
+                            style: SignInWithAppleButtonStyle.black,
+                            borderRadius: const BorderRadius.all(
+                              Radius.circular(8),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 24),
                       TextButton(
                         onPressed: () =>

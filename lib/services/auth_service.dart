@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/models/app_user.dart';
@@ -89,23 +91,37 @@ class AuthService {
         AppleIDAuthorizationScopes.fullName,
       ],
       nonce: nonce,
+      webAuthenticationOptions: !kIsWeb && Platform.isIOS
+          ? null
+          : WebAuthenticationOptions(
+              clientId: 'com.salles.bolaocopadomundo.signin',
+              redirectUri: Uri.parse(
+                'https://bolao-copa-do-mundo-salles.firebaseapp.com/__/auth/handler',
+              ),
+            ),
     );
 
-    final oauthCredential = OAuthProvider("apple.com").credential(
-      idToken: appleCredential.identityToken,
-      accessToken: appleCredential.authorizationCode,
+    final idToken = appleCredential.identityToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw Exception(
+        'Apple não retornou um token de identidade. '
+        'Verifique suas configurações de conta Apple ID e tente novamente.',
+      );
+    }
+
+    final oauthCredential = OAuthProvider('apple.com').credential(
+      idToken: idToken,
       rawNonce: rawNonce,
+      accessToken: appleCredential.authorizationCode,
     );
 
     final userCredential = await _auth.signInWithCredential(oauthCredential);
 
-    // Save profile to Firestore on first Apple login
-    final doc =
-        await _db.collection('users').doc(userCredential.user!.uid).get();
-    if (!doc.exists) {
+    final isNew = userCredential.additionalUserInfo?.isNewUser ?? false;
+    if (isNew) {
       final given = appleCredential.givenName ?? '';
       final family = appleCredential.familyName ?? '';
-      final name = '$given $family'.trim();
+      final name = [given, family].where((s) => s.isNotEmpty).join(' ').trim();
       await _saveUserToFirestore(
         uid: userCredential.user!.uid,
         name: name.isEmpty ? 'Usuário' : name,
