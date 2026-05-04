@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
-//import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import '../../core/widgets/sobre_dialog.dart';
 import '../../data/models/bolao_group.dart';
 import '../../data/models/app_user.dart';
 import '../../data/repositories/group_repository.dart';
 import '../../services/auth_service.dart';
-//import '../../services/firestore_service.dart';
 import '../matches/matches_screen.dart';
 import '../extras/extra_predictions_screen.dart';
 import '../ranking/ranking_screen.dart';
-//import '../admin/admin_dashboard.dart';
+import '../rules/rules_screen.dart';
+import '../admin/manage_results_screen.dart';
 
 class GroupHomeScreen extends StatefulWidget {
   final BolaoGroup group;
@@ -24,7 +23,6 @@ class GroupHomeScreen extends StatefulWidget {
 class _GroupHomeScreenState extends State<GroupHomeScreen> {
   final _authService = AuthService();
   final _groupRepo = GroupRepository();
-  //final _firestoreService = FirestoreService();
 
   AppUser? _appUser;
   BolaoMember? _member;
@@ -92,6 +90,22 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
     );
   }
 
+  void _abrirRegras() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const RulesScreen()),
+    );
+  }
+
+  void _abrirResultados() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ManageResultsScreen(groupId: widget.group.id),
+      ),
+    );
+  }
+
   void _abrirAdmin() {
     Navigator.pushNamed(context, '/admin');
   }
@@ -127,7 +141,6 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          // Saudação e pontos
           Text(
             'Olá, ${_appUser?.name ?? 'Jogador'}!',
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -139,12 +152,12 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Código de convite
           InkWell(
             onTap: _copiarCodigo,
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
                 color: const Color(0xFF1A6B3C).withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(12),
@@ -183,7 +196,6 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
           ),
           const SizedBox(height: 32),
 
-          // Menu principal
           _MenuItem(
             icon: Icons.sports_soccer,
             label: 'Meus Palpites',
@@ -204,13 +216,20 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
             descricao: 'Classificação dos participantes',
             onTap: _abrirRanking,
           ),
+          const SizedBox(height: 12),
+          _MenuItem(
+            icon: Icons.menu_book_outlined,
+            label: 'Regras do Bolão',
+            descricao: 'Pontuação, critérios e desempates',
+            onTap: _abrirRegras,
+          ),
           if (isAdmin) ...[
             const SizedBox(height: 12),
             _MenuItem(
               icon: Icons.scoreboard_outlined,
               label: 'Inserir Resultados',
               descricao: 'Registre o placar oficial dos jogos',
-              onTap: () => Navigator.pushNamed(context, '/admin/results'),
+              onTap: _abrirResultados,
             ),
           ],
         ],

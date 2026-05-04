@@ -4,30 +4,43 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/match.dart';
 import '../../data/models/team.dart';
 import '../../data/repositories/match_repository.dart';
+import '../../data/repositories/group_repository.dart';
 import '../../services/firestore_service.dart';
+import '../../services/scoring_service.dart';
+
 class ManageResultsScreen extends StatefulWidget {
-  const ManageResultsScreen({super.key});
+  final String groupId;
+
+  const ManageResultsScreen({super.key, required this.groupId});
+
   @override
   State<ManageResultsScreen> createState() => _ManageResultsScreenState();
 }
+
 class _ManageResultsScreenState extends State<ManageResultsScreen> {
   final _matchRepo = MatchRepository();
+  final _groupRepo = GroupRepository();
   final _firestoreService = FirestoreService();
+  final _scoringService = ScoringService();
   final _db = FirebaseFirestore.instance;
+
   List<Match> _matches = [];
   Map<String, Team> _teams = {};
   String? _cupId;
   bool _loading = true;
+  bool _recalculando = false;
   String? _erro;
+
   @override
   void initState() {
     super.initState();
     _carregar();
   }
+
   Future<void> _carregar({bool forceRefresh = false}) async {
     try {
-      final cup = await _firestoreService.fetchActiveCup(
-          forceRefresh: forceRefresh);
+      final cup =
+          await _firestoreService.fetchActiveCup(forceRefresh: forceRefresh);
       if (cup == null) {
         setState(() {
           _erro = 'Nenhum bolão ativo encontrado.';
@@ -49,105 +62,14 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
         _teams = results[2] as Map<String, Team>;
         _loading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() {
         _erro = 'Erro ao carregar jogos.';
         _loading = false;
       });
     }
   }
-  Future<void> _abrirEdicao(Match match) async {
-    final homeCtrl = TextEditingController(
-        text: match.officialHomeGoals?.toString() ?? '');
-    final awayCtrl = TextEditingController(
-        text: match.officialAwayGoals?.toString() ?? '');
-    String? erroDialog;
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(
-                '${_teams[match.homeTeamId]?.name ?? match.homeTeamId} × '
-                '${_teams[match.awayTeamId]?.name ?? match.awayTeamId}',
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      SizedBox(
-                        width: 60,
-                        child: TextField(
-                          controller: homeCtrl,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
-                          decoration: const InputDecoration(
-                              border: OutlineInputBorder()),
-                        ),
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('×',
-                            style: TextStyle(
-                                fontSize: 24, fontWeight: FontWeight.bold)),
-                      ),
-                      SizedBox(
-                        width: 60,
-                        child: TextField(
-                          controller: awayCtrl,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
-                          decoration: const InputDecoration(
-                              border: OutlineInputBorder()),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (erroDialog != null) ...[
-                    const SizedBox(height: 8),
-                    Text(erroDialog!,
-                        style: const TextStyle(color: Colors.red, fontSize: 13)),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A6B3C)),
-                  onPressed: () async {
-                    final home = int.tryParse(homeCtrl.text.trim());
-                    final away = int.tryParse(awayCtrl.text.trim());
-                    if (home == null || away == null) {
-                      setDialogState(() {
-                        erroDialog = 'Informe valores numéricos válidos.';
-                      });
-                      return;
-                    }
-                    await _salvarResultado(match, home, away);
-                    if (context.mounted) Navigator.pop(context);
-                  },
-                  child: const Text('Salvar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    homeCtrl.dispose();
-    awayCtrl.dispose();
-  }
+
   Future<void> _salvarResultado(Match match, int home, int away) async {
     if (_cupId == null) return;
     final collection = match.groupId != null
@@ -157,19 +79,127 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
             .collection('groups')
             .doc(match.groupId)
             .collection('matches')
-        : _db
-            .collection('cups')
-            .doc(_cupId)
-            .collection('knockout_matches');
+        : _db.collection('cups').doc(_cupId).collection('knockout_matches');
     await collection.doc(match.id).update({
       'official_home_goals': home,
       'official_away_goals': away,
       'finished': true,
     });
-    // Invalida cache para recarregar resultados atualizados
     MatchRepository.clearCache();
     await _carregar(forceRefresh: true);
+    await _recalcularTodos();
   }
+
+  Future<void> _recalcularTodos() async {
+    if (_cupId == null) return;
+    setState(() => _recalculando = true);
+    try {
+      final members = await _groupRepo.fetchMembers(widget.groupId);
+      await Future.wait(
+        members.map((m) async {
+          final pts = await _scoringService.calcularPontos(
+            groupId: widget.groupId,
+            userId: m.userId,
+            cupId: _cupId!,
+          );
+          await _groupRepo.updateMemberPoints(widget.groupId, m.userId, pts);
+        }),
+      );
+    } finally {
+      if (mounted) setState(() => _recalculando = false);
+    }
+  }
+
+  Future<void> _abrirEdicao(Match match) async {
+    final homeCtrl =
+        TextEditingController(text: match.officialHomeGoals?.toString() ?? '');
+    final awayCtrl =
+        TextEditingController(text: match.officialAwayGoals?.toString() ?? '');
+    String? erroDialog;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            '${_teams[match.homeTeamId]?.name ?? match.homeTeamId} × '
+            '${_teams[match.awayTeamId]?.name ?? match.awayTeamId}',
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 60,
+                    child: TextField(
+                      controller: homeCtrl,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                      decoration:
+                          const InputDecoration(border: OutlineInputBorder()),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12),
+                    child: Text('×',
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold)),
+                  ),
+                  SizedBox(
+                    width: 60,
+                    child: TextField(
+                      controller: awayCtrl,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.bold),
+                      decoration:
+                          const InputDecoration(border: OutlineInputBorder()),
+                    ),
+                  ),
+                ],
+              ),
+              if (erroDialog != null) ...[
+                const SizedBox(height: 8),
+                Text(erroDialog!,
+                    style: const TextStyle(color: Colors.red, fontSize: 13)),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A6B3C)),
+              onPressed: () async {
+                final home = int.tryParse(homeCtrl.text.trim());
+                final away = int.tryParse(awayCtrl.text.trim());
+                if (home == null || away == null) {
+                  setDialogState(() =>
+                      erroDialog = 'Informe valores numéricos válidos.');
+                  return;
+                }
+                await _salvarResultado(match, home, away);
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    homeCtrl.dispose();
+    awayCtrl.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,39 +212,63 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
           ? const Center(child: CircularProgressIndicator())
           : _erro != null
               ? Center(child: Text(_erro!))
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: _matches.length,
-                  itemBuilder: (context, index) {
-                    final match = _matches[index];
-                    final home = _teams[match.homeTeamId];
-                    final away = _teams[match.awayTeamId];
-                    final dateStr = DateFormat('dd/MM/yyyy · HH:mm')
-                        .format(match.matchTime);
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      child: ListTile(
-                        title: Text(
-                          '${home?.name ?? match.homeTeamId} × '
-                          '${away?.name ?? match.awayTeamId}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+              : Stack(
+                  children: [
+                    ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _matches.length,
+                      itemBuilder: (context, index) {
+                        final match = _matches[index];
+                        final home = _teams[match.homeTeamId];
+                        final away = _teams[match.awayTeamId];
+                        final dateStr = DateFormat('dd/MM/yyyy · HH:mm')
+                            .format(match.matchTime);
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          child: ListTile(
+                            title: Text(
+                              '${home?.name ?? match.homeTeamId} × '
+                              '${away?.name ?? match.awayTeamId}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Text(dateStr),
+                            trailing: match.finished
+                                ? Text(
+                                    '${match.officialHomeGoals} × '
+                                    '${match.officialAwayGoals}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1A6B3C)),
+                                  )
+                                : const Text('Pendente',
+                                    style: TextStyle(color: Colors.grey)),
+                            onTap: () => _abrirEdicao(match),
+                          ),
+                        );
+                      },
+                    ),
+                    if (_recalculando)
+                      Container(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        child: const Center(
+                          child: Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(height: 12),
+                                  Text('Recalculando pontuações...'),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                        subtitle: Text(dateStr),
-                        trailing: match.finished
-                            ? Text(
-                                '${match.officialHomeGoals} × '
-                                '${match.officialAwayGoals}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF1A6B3C)),
-                              )
-                            : const Text('Pendente',
-                                style: TextStyle(color: Colors.grey)),
-                        onTap: () => _abrirEdicao(match),
                       ),
-                    );
-                  },
+                  ],
                 ),
     );
   }

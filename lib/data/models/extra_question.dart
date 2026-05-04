@@ -6,6 +6,7 @@ class ExtraQuestion {
   final ExtraQuestionType type;
   final int order;
   final String? positionFilter;
+  final String? correctAnswer;
 
   const ExtraQuestion({
     required this.id,
@@ -13,6 +14,7 @@ class ExtraQuestion {
     required this.type,
     required this.order,
     this.positionFilter,
+    this.correctAnswer,
   });
 
   factory ExtraQuestion.fromFirestore(String id, Map<String, dynamic> data) {
@@ -24,6 +26,7 @@ class ExtraQuestion {
           : ExtraQuestionType.player,
       order: data['order'] ?? 0,
       positionFilter: data['position_filter'],
+      correctAnswer: data['correct_answer'],
     );
   }
 
@@ -33,6 +36,7 @@ class ExtraQuestion {
       'type': type == ExtraQuestionType.team ? 'team' : 'player',
       'order': order,
       if (positionFilter != null) 'position_filter': positionFilter,
+      if (correctAnswer != null) 'correct_answer': correctAnswer,
     };
   }
 }
