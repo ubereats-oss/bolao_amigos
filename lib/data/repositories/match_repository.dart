@@ -31,7 +31,10 @@ class MatchRepository {
           .collection('matches')
           .get();
       for (final doc in matchesSnapshot.docs) {
-        final data = doc.data()..['group_id'] = groupDoc.id.toUpperCase();
+        final data = doc.data()
+          ..['group_id'] = groupDoc.id.toLowerCase()
+          ..['home_team_id'] = (doc.data()['home_team_id'] ?? '').toString().toLowerCase()
+          ..['away_team_id'] = (doc.data()['away_team_id'] ?? '').toString().toLowerCase();
         matches.add(Match.fromFirestore(doc.id, data));
       }
     }
