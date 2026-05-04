@@ -140,11 +140,11 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
             ? _db.collection('cups').doc(_cupId).collection('groups')
                 .doc(m.groupId).collection('matches')
             : _db.collection('cups').doc(_cupId).collection('knockout_matches');
-        await col.doc(m.id).update({
+        await col.doc(m.id).set({
           'official_home_goals': r.homeGoals,
           'official_away_goals': r.awayGoals,
           'finished': true,
-        });
+        }, SetOptions(merge: true));
       }
       MatchRepository.clearCache();
       if (widget.groupId.isNotEmpty) {
