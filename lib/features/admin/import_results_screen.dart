@@ -36,6 +36,7 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
   @override
   void initState() {
     super.initState();
+    MatchRepository.clearCache();
     _carregar();
   }
 
