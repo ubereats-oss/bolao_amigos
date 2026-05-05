@@ -183,6 +183,70 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
     }
   }
 
+  Future<void> _confirmarApagar() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Apagar resultados?'),
+        content: const Text(
+          'Todos os placares oficiais serão removidos. Os palpites dos usuários não serão afetados.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Apagar'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _apagarTodos();
+  }
+
+  Future<void> _apagarTodos() async {
+    if (_cupId == null) return;
+    setState(() => _recalculando = true);
+    try {
+      final groups = await _db
+          .collection('cups').doc(_cupId).collection('groups').get();
+      for (final g in groups.docs) {
+        final ms = await _db
+            .collection('cups').doc(_cupId)
+            .collection('groups').doc(g.id).collection('matches').get();
+        for (final m in ms.docs) {
+          await m.reference.update({
+            'official_home_goals': null,
+            'official_away_goals': null,
+            'finished': false,
+          });
+        }
+      }
+      MatchRepository.clearCache();
+      if (widget.groupId.isNotEmpty) {
+        final members = await _groupRepo.fetchMembers(widget.groupId);
+        await Future.wait(members.map(
+          (m) => _groupRepo.updateMemberPoints(widget.groupId, m.userId, 0),
+        ));
+      }
+      if (mounted) {
+        setState(() { _recalculando = false; _resultados = []; });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Resultados apagados com sucesso.'),
+          backgroundColor: Color(0xFF1A6B3C),
+        ));
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _recalculando = false);
+        _mostrarErro('Erro ao apagar resultados.');
+      }
+    }
+  }
+
   void _mostrarSucesso(int n, {required bool comRecalculo}) {
     final extra = comRecalculo ? '' : ' — abra o grupo para recalcular pontos';
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -207,6 +271,14 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
         title: const Text('Importar Resultados'),
         backgroundColor: const Color(0xFF1A6B3C),
         foregroundColor: Colors.white,
+        actions: [
+          if (_cupId != null)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined),
+              tooltip: 'Apagar todos os resultados',
+              onPressed: _confirmarApagar,
+            ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
