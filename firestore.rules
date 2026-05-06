@@ -14,7 +14,10 @@ service cloud.firestore {
       return isAuth() &&
         get(/databases/$(database)/documents/bolao_groups/$(groupId)/members/$(request.auth.uid)).data.role == 'admin';
     }
-
+    function isAdmin() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+    }
     // ── Usuários ──────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isAuth();
@@ -31,6 +34,7 @@ service cloud.firestore {
       allow read: if isAuth();
       match /{document=**} {
         allow read: if isAuth();
+        allow write: if isAuth();
       }
     }
 
@@ -59,7 +63,7 @@ service cloud.firestore {
       // Membros
       match /members/{userId} {
   allow read: if isMember(groupId) || (isAuth() && request.auth.uid == userId);
-  allow create, update: if isAuth() && request.auth.uid == userId;
+  allow create, update: if (isAuth() && request.auth.uid == userId) || isGroupAdmin(groupId);
         // Admin pode remover membros
         allow delete: if isGroupAdmin(groupId) || request.auth.uid == userId;
 

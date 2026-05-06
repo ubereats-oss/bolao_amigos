@@ -3,21 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>212214398916-j17cmqger48mjdvf3ithep459p2aabuj.apps.googleusercontent.com</string>
+	<string>980349637154-ras5pa9n6i4kog3vabtga90j0ib1nmmq.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.212214398916-j17cmqger48mjdvf3ithep459p2aabuj</string>
+	<string>com.googleusercontent.apps.980349637154-ras5pa9n6i4kog3vabtga90j0ib1nmmq</string>
 	<key>API_KEY</key>
-	<string>AIzaSyBVIjPKmxcaiVN1x0zEQOJVZUd8CqfOMRE</string>
+	<string>AIzaSyBTkLQ-1eo0OhaWOUV5jxpe0lbGHPd2aEQ</string>
 	<key>GCM_SENDER_ID</key>
-	<string>212214398916</string>
+	<string>980349637154</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.salles.bolaocopadomundo</string>
+	<string>com.salles.bolao</string>
 	<key>PROJECT_ID</key>
-	<string>bolao-copa-do-mundo-salles</string>
+	<string>prestservbuscavida</string>
 	<key>STORAGE_BUCKET</key>
-	<string>bolao-copa-do-mundo-salles.firebasestorage.app</string>
+	<string>prestservbuscavida.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:212214398916:ios:b9d3161018a1be4eb26e91</string>
+	<string>1:980349637154:ios:b365d5fba802f07f04307b</string>
 </dict>
 </plist>
