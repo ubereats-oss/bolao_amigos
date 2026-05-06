@@ -45,3 +45,13 @@ app.*.map.json
 /android/app/release
 
 seed/serviceAccountKeyBolao.json
+# Planilhas
+*.xlsx
+*.xlsm
+*.xlsb
+
+# Firebase antigo
+ios/Runner/GoogleService-Info OLD.plist
+
+# Repomix
+bolao_copa.xml
