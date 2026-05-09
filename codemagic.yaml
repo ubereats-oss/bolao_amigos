@@ -33,9 +33,16 @@ workflows:
 
       - name: Build iOS
         script: |
-          BUILD_NAME=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          BUILD_NAME=${VERSION%%+*}
+          PUBSPEC_BUILD_NUMBER=${VERSION##*+}
           BASE_BUILD_NUMBER=${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-0}}
-          BUILD_NUMBER=$((BASE_BUILD_NUMBER + 200))
+          BUILD_NUMBER=$((BASE_BUILD_NUMBER + PUBSPEC_BUILD_NUMBER))
+          export FLUTTER_BUILD_NAME="$BUILD_NAME"
+          export FLUTTER_BUILD_NUMBER="$BUILD_NUMBER"
+          cd ios
+          agvtool new-version -all "$BUILD_NUMBER"
+          cd ..
           flutter build ipa --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
 
     artifacts:
