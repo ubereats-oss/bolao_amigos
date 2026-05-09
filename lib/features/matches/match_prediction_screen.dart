@@ -9,6 +9,7 @@ import '../../data/repositories/match_repository.dart';
 import '../../data/repositories/group_repository.dart';
 import '../../services/firestore_service.dart';
 import '../../services/scoring_rules.dart';
+import '../../core/widgets/sobre_dialog.dart';
 import 'widgets/points_badge.dart';
 class MatchPredictionScreen extends StatefulWidget {
   const MatchPredictionScreen({super.key});
@@ -29,6 +30,7 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
   Cup? _cup;
   bool _loading = true;
   bool _saving = false;
+  bool _initialized = false;
   String? _erro;
   String? _sucesso;
   late String _cupId;
@@ -37,6 +39,8 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
     final args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
     _cupId = args['cupId'];
@@ -89,6 +93,7 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
         _loading = false;
       });
     } catch (e) {
+      debugPrint('_carregar: $e');
       setState(() {
         _erro = 'Erro ao carregar jogo.';
         _loading = false;
@@ -120,6 +125,7 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
       _savedPrediction = prediction;
       setState(() { _sucesso = 'Palpite salvo com sucesso!'; });
     } catch (e) {
+      debugPrint('_salvar: $e');
       setState(() { _erro = 'Erro ao salvar palpite.'; });
     } finally {
       if (mounted) setState(() { _saving = false; });
@@ -132,6 +138,13 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
         title: const Text('Meu Palpite'),
         backgroundColor: const Color(0xFF1A6B3C),
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Sobre',
+            onPressed: () async => mostrarSobre(context),
+          ),
+        ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())

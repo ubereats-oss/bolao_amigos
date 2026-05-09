@@ -96,7 +96,8 @@ class _MatchesScreenState extends State<MatchesScreen>
         _palpites.addAll(palpites);
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('_carregar: $e');
       setState(() {
         _erro = 'Erro ao carregar jogos.';
         _loading = false;
@@ -147,7 +148,8 @@ class _MatchesScreenState extends State<MatchesScreen>
           backgroundColor: Color(0xFF1A6B3C),
         ));
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('_salvarUm: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Erro ao salvar palpite.'),
@@ -183,7 +185,8 @@ class _MatchesScreenState extends State<MatchesScreen>
           backgroundColor: const Color(0xFF1A6B3C),
         ));
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('_salvarTodos: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Erro ao salvar palpites.'),
