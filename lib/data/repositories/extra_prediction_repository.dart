@@ -37,7 +37,10 @@ class ExtraPredictionRepository {
         .doc(prediction.userId)
         .collection('extra_predictions')
         .doc(prediction.questionId)
-        .set(prediction.toFirestore());
+        .set({
+      ...prediction.toFirestore(),
+      'saved_at': FieldValue.serverTimestamp(),
+    });
   }
   // Busca todos os times de uma copa
   Future<List<Team>> fetchTeams(String cupId) async {

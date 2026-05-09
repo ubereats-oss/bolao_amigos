@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import '../../core/widgets/sobre_dialog.dart';
 import '../../data/models/bolao_group.dart';
 import '../../data/models/app_user.dart';
-import '../../data/repositories/group_repository.dart';
 import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
+import '../../services/scoring_service.dart';
 import '../matches/matches_screen.dart';
 import '../extras/extra_predictions_screen.dart';
 import '../ranking/ranking_screen.dart';
@@ -23,10 +24,11 @@ class GroupHomeScreen extends StatefulWidget {
 
 class _GroupHomeScreenState extends State<GroupHomeScreen> {
   final _authService = AuthService();
-  final _groupRepo = GroupRepository();
+  final _firestoreService = FirestoreService();
+  final _scoringService = ScoringService();
 
   AppUser? _appUser;
-  BolaoMember? _member;
+  int _points = 0;
   bool _loading = true;
 
   @override
@@ -39,15 +41,20 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
     final user = _authService.currentUser;
     if (user == null) return;
 
-    final results = await Future.wait([
-      _authService.fetchAppUser(user.uid),
-      _groupRepo.fetchMember(widget.group.id, user.uid),
-    ]);
+    final appUser = await _authService.fetchAppUser(user.uid);
+    final cup = await _firestoreService.fetchActiveCup();
+    final points = cup == null
+        ? 0
+        : await _scoringService.calcularPontos(
+            groupId: widget.group.id,
+            userId: user.uid,
+            cupId: cup.id,
+          );
 
     if (mounted) {
       setState(() {
-        _appUser = results[0] as AppUser?;
-        _member = results[1] as BolaoMember?;
+        _appUser = appUser;
+        _points = points;
         _loading = false;
       });
     }
@@ -126,8 +133,7 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final isAdmin = _member?.isAdmin ?? false;
-    final pts = _member?.points ?? 0;
+    final isGlobalAdmin = _appUser?.isAdmin == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -157,7 +163,7 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Pontuação no bolão: $pts pts',
+            'Pontuação no bolão: $_points pts',
             style: const TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 24),
@@ -233,7 +239,7 @@ class _GroupHomeScreenState extends State<GroupHomeScreen> {
             descricao: 'Pontuação, critérios e desempates',
             onTap: _abrirRegras,
           ),
-          if (isAdmin) ...[
+          if (isGlobalAdmin) ...[
             const SizedBox(height: 12),
             _MenuItem(
               icon: Icons.scoreboard_outlined,

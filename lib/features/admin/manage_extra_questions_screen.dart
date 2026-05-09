@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/extra_question.dart';
 import '../../data/repositories/extra_prediction_repository.dart';
+import '../../data/models/team.dart';
+import '../../data/models/player.dart';
 import '../../services/firestore_service.dart';
+import '../extras/widgets/team_selection_sheet.dart';
+import '../extras/widgets/player_selection_sheet.dart';
 class ManageExtraQuestionsScreen extends StatefulWidget {
   const ManageExtraQuestionsScreen({super.key});
   @override
@@ -15,6 +19,8 @@ class _ManageExtraQuestionsScreenState
   final _firestoreService = FirestoreService();
   final _db = FirebaseFirestore.instance;
   List<ExtraQuestion> _questions = [];
+  List<Team> _teams = [];
+  List<Player> _players = [];
   String? _cupId;
   bool _loading = true;
   String? _erro;
@@ -34,9 +40,15 @@ class _ManageExtraQuestionsScreenState
         return;
       }
       _cupId = cup.id;
-      final questions = await _repo.fetchQuestions(cup.id);
+      final results = await Future.wait([
+        _repo.fetchQuestions(cup.id),
+        _repo.fetchTeams(cup.id),
+        _repo.fetchPlayers(cup.id),
+      ]);
       setState(() {
-        _questions = questions;
+        _questions = results[0] as List<ExtraQuestion>;
+        _teams = results[1] as List<Team>;
+        _players = results[2] as List<Player>;
         _loading = false;
       });
     } catch (e) {
@@ -50,50 +62,93 @@ class _ManageExtraQuestionsScreenState
     final textCtrl =
         TextEditingController(text: question?.question ?? '');
     ExtraQuestionType tipo = question?.type ?? ExtraQuestionType.team;
+    String? correctAnswer = question?.correctAnswer;
     await showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            Future<void> selecionarGabarito() async {
+              final result = await _selecionarGabarito(
+                tipo: tipo,
+                selectedId: correctAnswer,
+              );
+              if (result != null) {
+                setDialogState(() => correctAnswer = result);
+              }
+            }
+
             return AlertDialog(
               title: Text(
                   question == null ? 'Nova Pergunta' : 'Editar Pergunta'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: textCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Pergunta',
-                      border: OutlineInputBorder(),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: textCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Pergunta',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
                     ),
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 16),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Tipo de resposta:',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  RadioGroup<ExtraQuestionType>(
-                    groupValue: tipo,
-                    onChanged: (v) {
-                      if (v != null) setDialogState(() => tipo = v);
-                    },
-                    child: const Column(
-                      children: [
-                        RadioListTile<ExtraQuestionType>(
-                          title: Text('Seleção (time)'),
-                          value: ExtraQuestionType.team,
-                        ),
-                        RadioListTile<ExtraQuestionType>(
-                          title: Text('Jogador'),
-                          value: ExtraQuestionType.player,
-                        ),
-                      ],
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Tipo de resposta:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
-                  ),
-                ],
+                    RadioGroup<ExtraQuestionType>(
+                      groupValue: tipo,
+                      onChanged: (v) {
+                        if (v != null) {
+                          setDialogState(() {
+                            tipo = v;
+                            correctAnswer = null;
+                          });
+                        }
+                      },
+                      child: const Column(
+                        children: [
+                          RadioListTile<ExtraQuestionType>(
+                            title: Text('Seleção (time)'),
+                            value: ExtraQuestionType.team,
+                          ),
+                          RadioListTile<ExtraQuestionType>(
+                            title: Text('Jogador'),
+                            value: ExtraQuestionType.player,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Gabarito:',
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: selecionarGabarito,
+                        icon: const Icon(Icons.fact_check_outlined),
+                        label: Text(_gabaritoLabel(tipo, correctAnswer)),
+                      ),
+                    ),
+                    if (correctAnswer != null) ...[
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () => setDialogState(() {
+                          correctAnswer = null;
+                        }),
+                        icon: const Icon(Icons.clear_outlined),
+                        label: const Text('Limpar gabarito'),
+                      ),
+                    ],
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -109,7 +164,8 @@ class _ManageExtraQuestionsScreenState
                       id: question?.id,
                       text: textCtrl.text.trim(),
                       type: tipo,
-                      order: question?.order ?? _questions.length,
+                      order: question?.order ?? (_questions.length + 1),
+                      correctAnswer: correctAnswer,
                     );
                     if (context.mounted) Navigator.pop(context);
                   },
@@ -128,6 +184,7 @@ class _ManageExtraQuestionsScreenState
     required String text,
     required ExtraQuestionType type,
     required int order,
+    required String? correctAnswer,
   }) async {
     if (_cupId == null) return;
     final ref = _db
@@ -138,13 +195,64 @@ class _ManageExtraQuestionsScreenState
       'question': text,
       'type': type == ExtraQuestionType.team ? 'team' : 'player',
       'order': order,
+      'correct_answer': correctAnswer,
     };
     if (id == null) {
       await ref.add(data);
     } else {
-      await ref.doc(id).update(data);
+      await ref.doc(id).set(data, SetOptions(merge: true));
     }
     await _carregar();
+  }
+
+  Future<String?> _selecionarGabarito({
+    required ExtraQuestionType tipo,
+    required String? selectedId,
+  }) async {
+    if (tipo == ExtraQuestionType.team) {
+      if (_teams.isEmpty) return null;
+      return showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => TeamSelectionSheet(
+          title: 'Selecionar gabarito',
+          teams: _teams,
+          selectedId: selectedId,
+          teamsExcluidos: const {},
+        ),
+      );
+    }
+    if (_players.isEmpty) return null;
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => PlayerSelectionSheet(
+        title: 'Selecionar gabarito',
+        teams: _teams,
+        players: _players,
+        selectedPlayerId: selectedId,
+      ),
+    );
+  }
+
+  String _gabaritoLabel(ExtraQuestionType tipo, String? id) {
+    if (id == null || id.isEmpty) return 'Selecionar gabarito';
+    if (tipo == ExtraQuestionType.team) {
+      final team = _teams.firstWhere(
+        (t) => t.id == id,
+        orElse: () => const Team(id: '', name: 'Desconhecido', flagAsset: ''),
+      );
+      return team.name;
+    }
+    final player = _players.firstWhere(
+      (p) => p.id == id,
+      orElse: () => const Player(id: '', name: 'Desconhecido', teamId: '', position: ''),
+    );
+    final team = _teams.firstWhere(
+      (t) => t.id == player.teamId,
+      orElse: () => const Team(id: '', name: '', flagAsset: ''),
+    );
+    return team.name.isNotEmpty ? '${player.name} (${team.name})' : player.name;
   }
   Future<void> _excluir(ExtraQuestion question) async {
     final confirmar = await showDialog<bool>(
@@ -212,9 +320,8 @@ class _ManageExtraQuestionsScreenState
                             ),
                             title: Text(q.question),
                             subtitle: Text(
-                              q.type == ExtraQuestionType.team
-                                  ? 'Resposta: Seleção'
-                                  : 'Resposta: Jogador',
+                              'Resposta: ${q.type == ExtraQuestionType.team ? 'Seleção' : 'Jogador'}'
+                              ' · Gabarito: ${_gabaritoLabel(q.type, q.correctAnswer)}',
                               style: const TextStyle(fontSize: 12),
                             ),
                             trailing: Row(

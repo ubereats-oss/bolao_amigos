@@ -300,11 +300,11 @@ async function seed() {
   console.log('❓ Criando perguntas extras...');
   const questionsRef = cupRef.collection('extra_questions');
   const defaultQuestions = [
-    { question: 'Quem será o Campeão?',          type: 'team',   order: 0 },
-    { question: 'Quem será o Vice-Campeão?',      type: 'team',   order: 1 },
-    { question: 'Quem será o Artilheiro?',        type: 'player', order: 2 },
-    { question: 'Quem fará o primeiro gol da Final?', type: 'player', order: 3 },
-    { question: 'Quem será o Goleiro menos vazado?',  type: 'player', order: 4 },
+    { question: 'Quem será o Campeão?',          type: 'team',   order: 1 },
+    { question: 'Quem será o Vice-Campeão?',      type: 'team',   order: 2 },
+    { question: 'Quem será o Artilheiro?',        type: 'player', order: 3 },
+    { question: 'Quem fará o primeiro gol da Final?', type: 'player', order: 4 },
+    { question: 'Quem será o Goleiro menos vazado?',  type: 'player', order: 5 },
   ];
   for (const q of defaultQuestions) {
     await questionsRef.add(q);

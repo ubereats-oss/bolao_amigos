@@ -10,7 +10,8 @@ class BracketSlot {
   bool get isThird => code.startsWith('3');
 
   /// Grupos candidatos para slots de 3º colocado (ex: '3ABCDF' → ['A','B','C','D','F'])
-  List<String> get thirdGroups => isThird ? code.substring(1).split('') : [];
+  List<String> get thirdGroups =>
+      isThird ? code.substring(1).split('').map((g) => g.toLowerCase()).toList() : [];
 }
 
 class BracketMatchDef {

@@ -6,8 +6,10 @@ import '../../data/models/team.dart';
 import '../../data/models/prediction.dart';
 import '../../data/models/cup.dart';
 import '../../data/repositories/match_repository.dart';
-import '../../data/repositories/prediction_repository.dart';
+import '../../data/repositories/group_repository.dart';
 import '../../services/firestore_service.dart';
+import '../../services/scoring_rules.dart';
+import 'widgets/points_badge.dart';
 class MatchPredictionScreen extends StatefulWidget {
   const MatchPredictionScreen({super.key});
   @override
@@ -15,12 +17,13 @@ class MatchPredictionScreen extends StatefulWidget {
 }
 class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
   final _matchRepo = MatchRepository();
-  final _predictionRepo = PredictionRepository();
+  final _groupRepo = GroupRepository();
   final _firestoreService = FirestoreService();
   final _formKey = GlobalKey<FormState>();
   final _homeController = TextEditingController();
   final _awayController = TextEditingController();
   Match? _match;
+  Prediction? _savedPrediction;
   Team? _homeTeam;
   Team? _awayTeam;
   Cup? _cup;
@@ -65,9 +68,18 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
         return;
       }
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final prediction = await _predictionRepo.fetchPrediction(uid, _matchId);
+      if (_groupId == null || _groupId!.isEmpty) {
+        setState(() {
+          _erro = 'Grupo não informado.';
+          _loading = false;
+        });
+        return;
+      }
+      final prediction =
+          await _groupRepo.fetchPrediction(_groupId!, uid, _matchId);
       setState(() {
         _match = match;
+        _savedPrediction = prediction;
         _homeTeam = teams[match.homeTeamId];
         _awayTeam = teams[match.awayTeamId];
         _homeController.text =
@@ -100,7 +112,12 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
         awayGoals: int.parse(_awayController.text),
         savedAt: DateTime.now(),
       );
-      await _predictionRepo.savePrediction(prediction);
+      if (_groupId == null || _groupId!.isEmpty) {
+        setState(() { _erro = 'Grupo não informado.'; });
+        return;
+      }
+      await _groupRepo.savePrediction(_groupId!, prediction);
+      _savedPrediction = prediction;
       setState(() { _sucesso = 'Palpite salvo com sucesso!'; });
     } catch (e) {
       setState(() { _erro = 'Erro ao salvar palpite.'; });
@@ -126,6 +143,16 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
   Widget _buildBody() {
     final match = _match!;
     final locked = _cup?.isLocked ?? true;
+    final pontos = match.finished && match.groupId != null
+        ? _savedPrediction != null
+            ? ScoringRules.matchPoints(
+                officialHomeGoals: match.officialHomeGoals ?? 0,
+                officialAwayGoals: match.officialAwayGoals ?? 0,
+                predictedHomeGoals: _savedPrediction!.homeGoals,
+                predictedAwayGoals: _savedPrediction!.awayGoals,
+              )
+            : 0
+        : null;
     final dateStr = DateFormat('dd/MM/yyyy · HH:mm').format(match.matchTime);
     final startsAt = _cup?.startsAt;
     final lockStr = startsAt != null
@@ -170,11 +197,21 @@ class _MatchPredictionScreenState extends State<MatchPredictionScreen> {
                   color: const Color(0xFF1A6B3C).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(
-                  'Resultado oficial: '
-                  '${match.officialHomeGoals} × ${match.officialAwayGoals}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Resultado oficial: '
+                        '${match.officialHomeGoals} × ${match.officialAwayGoals}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PointsBadge(points: pontos ?? 0),
+                  ],
                 ),
               ),
             if (locked && !match.finished)

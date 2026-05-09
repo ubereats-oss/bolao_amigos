@@ -12,12 +12,13 @@ class Prediction {
     required this.savedAt,
   });
   factory Prediction.fromFirestore(String matchId, Map<String, dynamic> data) {
+    final savedAt = data['saved_at'];
     return Prediction(
       matchId: matchId,
       userId: data['user_id'] ?? '',
       homeGoals: data['home_goals'] ?? 0,
       awayGoals: data['away_goals'] ?? 0,
-      savedAt: (data['saved_at'] as dynamic).toDate(),
+      savedAt: savedAt != null ? (savedAt as dynamic).toDate() : DateTime.now(),
     );
   }
   Map<String, dynamic> toFirestore() {

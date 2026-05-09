@@ -204,7 +204,7 @@ class BracketEngine {
     }
     if (code.startsWith('1') || code.startsWith('2')) {
       final pos = int.parse(code[0]) - 1;
-      final groupId = code.substring(1);
+      final groupId = code.substring(1).toLowerCase();
       final gs = standings[groupId];
       if (gs == null || gs.standings.length <= pos) return null;
       return gs.standings[pos].teamId;

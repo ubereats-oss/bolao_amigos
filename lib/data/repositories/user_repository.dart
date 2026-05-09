@@ -3,10 +3,7 @@ import '../models/app_user.dart';
 class UserRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   Future<List<AppUser>> fetchAllUsers() async {
-    final snapshot = await _db
-        .collection('users')
-        .orderBy('total_points', descending: true)
-        .get();
+    final snapshot = await _db.collection('users').orderBy('name').get();
     return snapshot.docs.map((doc) {
       final data = doc.data();
       // Email não é exposto no ranking
@@ -18,10 +15,5 @@ class UserRepository {
         totalPoints: data['total_points'] ?? 0,
       );
     }).toList();
-  }
-  Future<void> updatePoints(String userId, int points) async {
-    await _db.collection('users').doc(userId).update({
-      'total_points': points,
-    });
   }
 }

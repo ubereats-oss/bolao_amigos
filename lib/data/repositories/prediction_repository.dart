@@ -31,6 +31,9 @@ class PredictionRepository {
         .doc(prediction.userId)
         .collection('predictions')
         .doc(prediction.matchId)
-        .set(prediction.toFirestore());
+        .set({
+      ...prediction.toFirestore(),
+      'saved_at': FieldValue.serverTimestamp(),
+    });
   }
 }

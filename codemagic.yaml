@@ -18,6 +18,14 @@ workflows:
         script: |
           flutter pub get
 
+      - name: Analyze
+        script: |
+          flutter analyze --no-pub
+
+      - name: Test
+        script: |
+          flutter test --no-pub
+
       - name: Install pods
         script: |
           cd ios

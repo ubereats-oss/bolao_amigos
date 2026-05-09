@@ -4,9 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/models/match.dart';
 import '../../data/models/team.dart';
 import '../../data/repositories/match_repository.dart';
-import '../../data/repositories/group_repository.dart';
 import '../../services/firestore_service.dart';
-import '../../services/scoring_service.dart';
 
 class ManageResultsScreen extends StatefulWidget {
   final String groupId;
@@ -19,16 +17,14 @@ class ManageResultsScreen extends StatefulWidget {
 
 class _ManageResultsScreenState extends State<ManageResultsScreen> {
   final _matchRepo = MatchRepository();
-  final _groupRepo = GroupRepository();
   final _firestoreService = FirestoreService();
-  final _scoringService = ScoringService();
   final _db = FirebaseFirestore.instance;
 
   List<Match> _matches = [];
   Map<String, Team> _teams = {};
   String? _cupId;
   bool _loading = true;
-  bool _recalculando = false;
+  bool _salvando = false;
   String? _erro;
 
   @override
@@ -72,6 +68,7 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
 
   Future<void> _salvarResultado(Match match, int home, int away) async {
     if (_cupId == null) return;
+    setState(() => _salvando = true);
     final collection = match.groupId != null
         ? _db
             .collection('cups')
@@ -80,33 +77,16 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
             .doc(match.groupId)
             .collection('matches')
         : _db.collection('cups').doc(_cupId).collection('knockout_matches');
-    await collection.doc(match.id).update({
-      'official_home_goals': home,
-      'official_away_goals': away,
-      'finished': true,
-    });
-    MatchRepository.clearCache();
-    await _carregar(forceRefresh: true);
-    await _recalcularTodos();
-  }
-
-  Future<void> _recalcularTodos() async {
-    if (_cupId == null) return;
-    setState(() => _recalculando = true);
     try {
-      final members = await _groupRepo.fetchMembers(widget.groupId);
-      await Future.wait(
-        members.map((m) async {
-          final pts = await _scoringService.calcularPontos(
-            groupId: widget.groupId,
-            userId: m.userId,
-            cupId: _cupId!,
-          );
-          await _groupRepo.updateMemberPoints(widget.groupId, m.userId, pts);
-        }),
-      );
+      await collection.doc(match.id).set({
+        'official_home_goals': home,
+        'official_away_goals': away,
+        'finished': true,
+      }, SetOptions(merge: true));
+      MatchRepository.clearCache();
+      await _carregar(forceRefresh: true);
     } finally {
-      if (mounted) setState(() => _recalculando = false);
+      if (mounted) setState(() => _salvando = false);
     }
   }
 
@@ -181,9 +161,14 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
               onPressed: () async {
                 final home = int.tryParse(homeCtrl.text.trim());
                 final away = int.tryParse(awayCtrl.text.trim());
-                if (home == null || away == null) {
-                  setDialogState(() =>
-                      erroDialog = 'Informe valores numéricos válidos.');
+                if (home == null ||
+                    away == null ||
+                    home < 0 ||
+                    away < 0 ||
+                    home > 99 ||
+                    away > 99) {
+                  setDialogState(() => erroDialog =
+                      'Informe placares entre 0 e 99.');
                   return;
                 }
                 await _salvarResultado(match, home, away);
@@ -249,7 +234,7 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
                         );
                       },
                     ),
-                    if (_recalculando)
+                    if (_salvando)
                       Container(
                         color: Colors.black.withValues(alpha: 0.35),
                         child: const Center(
@@ -261,7 +246,7 @@ class _ManageResultsScreenState extends State<ManageResultsScreen> {
                                 children: [
                                   CircularProgressIndicator(),
                                   SizedBox(height: 12),
-                                  Text('Recalculando pontuações...'),
+                                  Text('Salvando resultado...'),
                                 ],
                               ),
                             ),

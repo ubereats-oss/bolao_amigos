@@ -1,11 +1,32 @@
-# bolao_copa
-A new Flutter project.
-## Getting Started
-This project is a starting point for a Flutter application.
-A few resources to get you started if this is your first Flutter project:
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+# Bolão com Amigos
+
+Aplicativo Flutter/Firebase para bolão da Copa.
+
+## Comandos
+
+~~~powershell
+flutter pub get
+flutter analyze --no-pub
+flutter test --no-pub
+~~~
+
+## Firebase
+
+Antes de publicar novas regras:
+
+~~~powershell
+firebase deploy --only firestore:rules,firestore:indexes
+~~~
+
+Após a mudança para convites indexados, migrar grupos já existentes:
+
+~~~powershell
+node seed/migrar_invite_codes.js
+~~~
+
+## Segurança
+
+- Dados da Copa (`cups/**`) só podem ser alterados por usuário com `users/{uid}.is_admin == true`.
+- Pontuação não é gravada pelo cliente; ranking e tela inicial calculam os pontos ao ler os dados.
+- Palpites só podem ser gravados antes de `cups/{cupId}.starts_at`.
+- Convites usam `invite_codes/{codigo}` com leitura direta; listagem é bloqueada.

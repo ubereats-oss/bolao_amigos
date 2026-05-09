@@ -4,10 +4,8 @@ import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../../data/models/match.dart';
-import '../../data/repositories/group_repository.dart';
 import '../../data/repositories/match_repository.dart';
 import '../../services/firestore_service.dart';
-import '../../services/scoring_service.dart';
 import 'widgets/resultado_card.dart';
 import 'widgets/team_name_map.dart';
 
@@ -22,9 +20,7 @@ class ImportResultsScreen extends StatefulWidget {
 
 class _ImportResultsScreenState extends State<ImportResultsScreen> {
   final _matchRepo = MatchRepository();
-  final _groupRepo = GroupRepository();
   final _firestoreService = FirestoreService();
-  final _scoringService = ScoringService();
   final _db = FirebaseFirestore.instance;
 
   List<Match> _matches = [];
@@ -45,8 +41,17 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
       final cup = await _firestoreService.fetchActiveCup();
       if (cup == null) { setState(() => _loading = false); return; }
       _cupId = cup.id;
-      final matches = await _matchRepo.fetchGroupMatches(cup.id);
-      setState(() { _matches = matches; _loading = false; });
+      final results = await Future.wait<List<Match>>([
+        _matchRepo.fetchGroupMatches(cup.id),
+        _matchRepo.fetchKnockoutMatches(cup.id),
+      ]);
+      final group = results[0];
+      final knockout = results[1];
+      setState(() {
+        _matches = [...group, ...knockout]
+          ..sort((a, b) => a.matchTime.compareTo(b.matchTime));
+        _loading = false;
+      });
     } catch (_) {
       setState(() => _loading = false);
     }
@@ -81,9 +86,16 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
 
   int? _cellInt(Data? cell) {
     final v = cell?.value;
-    if (v is IntCellValue) return v.value;
-    if (v is DoubleCellValue) return v.value.round();
-    if (v is TextCellValue) return int.tryParse(v.value.toString().trim());
+    if (v is IntCellValue) return v.value >= 0 && v.value <= 99 ? v.value : null;
+    if (v is DoubleCellValue) {
+      final value = v.value.round();
+      return value >= 0 && value <= 99 ? value : null;
+    }
+    if (v is TextCellValue) {
+      final value = int.tryParse(v.value.toString().trim());
+      if (value == null || value < 0 || value > 99) return null;
+      return value;
+    }
     return null;
   }
 
@@ -148,37 +160,12 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
         }, SetOptions(merge: true));
       }
       MatchRepository.clearCache();
-      if (widget.groupId.isNotEmpty) {
-        await _recalcularTodos(validos.length);
-      } else {
-        if (mounted) setState(() => _recalculando = false);
-        if (mounted) _mostrarSucesso(validos.length, comRecalculo: false);
-      }
+      if (mounted) setState(() => _recalculando = false);
+      if (mounted) _mostrarSucesso(validos.length);
     } catch (_) {
       if (mounted) {
         setState(() => _recalculando = false);
         _mostrarErro('Erro ao salvar resultados.');
-      }
-    }
-  }
-
-  Future<void> _recalcularTodos(int salvos) async {
-    try {
-      final members = await _groupRepo.fetchMembers(widget.groupId);
-      await Future.wait(members.map((m) async {
-        final pts = await _scoringService.calcularPontos(
-          groupId: widget.groupId, userId: m.userId, cupId: _cupId!,
-        );
-        await _groupRepo.updateMemberPoints(widget.groupId, m.userId, pts);
-      }));
-      if (mounted) {
-        setState(() => _recalculando = false);
-        _mostrarSucesso(salvos, comRecalculo: true);
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _recalculando = false);
-        _mostrarErro('Resultados salvos, mas erro no recálculo.');
       }
     }
   }
@@ -225,13 +212,19 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
           });
         }
       }
-      MatchRepository.clearCache();
-      if (widget.groupId.isNotEmpty) {
-        final members = await _groupRepo.fetchMembers(widget.groupId);
-        await Future.wait(members.map(
-          (m) => _groupRepo.updateMemberPoints(widget.groupId, m.userId, 0),
-        ));
+      final knockout = await _db
+          .collection('cups')
+          .doc(_cupId)
+          .collection('knockout_matches')
+          .get();
+      for (final m in knockout.docs) {
+        await m.reference.update({
+          'official_home_goals': null,
+          'official_away_goals': null,
+          'finished': false,
+        });
       }
+      MatchRepository.clearCache();
       if (mounted) {
         setState(() { _recalculando = false; _resultados = []; });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -247,10 +240,9 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
     }
   }
 
-  void _mostrarSucesso(int n, {required bool comRecalculo}) {
-    final extra = comRecalculo ? '' : ' — abra o grupo para recalcular pontos';
+  void _mostrarSucesso(int n) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('$n resultado(s) salvo(s)$extra.'),
+      content: Text('$n resultado(s) salvo(s).'),
       backgroundColor: const Color(0xFF1A6B3C),
     ));
   }
@@ -350,7 +342,7 @@ class _ImportResultsScreenState extends State<ImportResultsScreen> {
                             children: [
                               CircularProgressIndicator(),
                               SizedBox(height: 12),
-                              Text('Recalculando pontuações...'),
+                              Text('Salvando resultados...'),
                             ],
                           ),
                         ),

@@ -11,17 +11,21 @@ import 'bracket_engine.dart';
 import 'widgets/bracket_match_card.dart';
 
 class KnockoutBracketScreen extends StatefulWidget {
+  final String groupId;
   final Cup cup;
   final List<Match> groupMatches;
   // null = sem palpite salvo para aquele jogo
   final Map<String, List<int>?> groupPredictions;
+  final Map<String, Match> knockoutMatchesById;
   final Map<String, Team> teams;
 
   const KnockoutBracketScreen({
     super.key,
+    required this.groupId,
     required this.cup,
     required this.groupMatches,
     required this.groupPredictions,
+    required this.knockoutMatchesById,
     required this.teams,
   });
 
@@ -70,7 +74,7 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
   Future<void> _inicializar() async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
-      final koPreds = await _knockoutRepo.fetchAll(uid);
+      final koPreds = await _knockoutRepo.fetchAll(widget.groupId, uid);
 
       final Map<String, List<String>> groupTeams = {};
       for (final m in widget.groupMatches) {
@@ -147,7 +151,7 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
         awayGoals: gols[1],
         savedAt: DateTime.now(),
       );
-      await _knockoutRepo.save(pred);
+      await _knockoutRepo.save(widget.groupId, pred);
       setState(() => _koPreds[rm.def.id] = pred);
       _recomputar();
       if (mounted) {
@@ -184,7 +188,7 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
           awayGoals: gols[1],
           savedAt: DateTime.now(),
         );
-        await _knockoutRepo.save(pred);
+        await _knockoutRepo.save(widget.groupId, pred);
         _koPreds[rm.def.id] = pred;
       }
       _recomputar();
@@ -242,6 +246,8 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
                 matches: matches,
                 teams: widget.teams,
                 cup: widget.cup,
+                officialMatches: widget.knockoutMatchesById,
+                savedPredictions: _koPreds,
                 localPalpites: _localPalpites,
                 saving: _saving,
                 savingAll: _savingAll,
@@ -264,6 +270,8 @@ class _PhaseTab extends StatelessWidget {
   final List<ResolvedMatch> matches;
   final Map<String, Team> teams;
   final Cup cup;
+  final Map<String, Match> officialMatches;
+  final Map<String, KnockoutPrediction> savedPredictions;
   final Map<String, List<int>> localPalpites;
   final Map<String, bool> saving;
   final bool savingAll;
@@ -276,6 +284,8 @@ class _PhaseTab extends StatelessWidget {
     required this.matches,
     required this.teams,
     required this.cup,
+    required this.officialMatches,
+    required this.savedPredictions,
     required this.localPalpites,
     required this.saving,
     required this.savingAll,
@@ -334,6 +344,8 @@ class _PhaseTab extends StatelessWidget {
               return BracketMatchCard(
                 resolved: rm,
                 teams: teams,
+                officialMatch: officialMatches[rm.def.id],
+                savedPrediction: savedPredictions[rm.def.id],
                 locked: cup.isLocked,
                 palpite: localPalpites[rm.def.id] ?? [0, 0],
                 isSaving: saving[rm.def.id] ?? false,

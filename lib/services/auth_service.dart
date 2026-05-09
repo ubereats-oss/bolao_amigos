@@ -140,16 +140,18 @@ class AuthService {
     }
 
     final uid = user.uid;
+    final lastSignIn = user.metadata.lastSignInTime;
+    if (lastSignIn == null ||
+        DateTime.now().difference(lastSignIn) > const Duration(minutes: 5)) {
+      throw FirebaseAuthException(
+        code: 'requires-recent-login',
+        message: 'Login recente obrigatório para excluir a conta.',
+      );
+    }
 
-    // 🔥 deletar dados do Firestore (ajuste conforme sua estrutura)
     final firestore = FirebaseFirestore.instance;
 
     await firestore.collection('users').doc(uid).delete();
-
-    // ⚠️ deletar outros dados vinculados se existirem
-    // ex: apostas, grupos, etc
-
-    // 🔴 deletar usuário do Auth (por último)
     await user.delete();
   }
 

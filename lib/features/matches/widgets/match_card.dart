@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../data/models/match.dart';
 import '../../../data/models/team.dart';
+import '../../../services/scoring_rules.dart';
+import 'points_badge.dart';
 import 'team_block.dart';
 import 'score_control.dart';
 
@@ -34,6 +36,16 @@ class MatchCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateStr = DateFormat('dd/MM/yyyy · HH:mm').format(match.matchTime);
     final temPalpite = palpite != null;
+    final pontos = match.finished && match.groupId != null
+        ? temPalpite
+            ? ScoringRules.matchPoints(
+                officialHomeGoals: match.officialHomeGoals ?? 0,
+                officialAwayGoals: match.officialAwayGoals ?? 0,
+                predictedHomeGoals: palpite![0],
+                predictedAwayGoals: palpite![1],
+              )
+            : 0
+        : null;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -63,13 +75,23 @@ class MatchCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             if (match.finished)
-              Text(
-                'Resultado oficial: '
-                '${match.officialHomeGoals} × ${match.officialAwayGoals}',
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1A6B3C),
-                    fontSize: 13),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'Resultado oficial: '
+                      '${match.officialHomeGoals} × ${match.officialAwayGoals}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1A6B3C),
+                          fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  PointsBadge(points: pontos ?? 0),
+                ],
               )
             else if (!locked)
               SizedBox(

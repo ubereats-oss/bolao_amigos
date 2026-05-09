@@ -28,6 +28,7 @@ class _MatchesScreenState extends State<MatchesScreen>
   late TabController _tabController;
 
   List<Match> _groupMatches = [];
+  Map<String, Match> _knockoutMatchesById = {};
   Map<String, Team> _teams = {};
   Cup? _cup;
 
@@ -67,13 +68,15 @@ class _MatchesScreenState extends State<MatchesScreen>
 
       final results = await Future.wait([
         _matchRepo.fetchGroupMatches(cup.id),
+        _matchRepo.fetchKnockoutMatches(cup.id),
         _matchRepo.fetchTeams(cup.id),
         _groupRepo.fetchAllPredictions(widget.groupId, uid),
       ]);
 
       final groupMatches = results[0] as List<Match>;
-      final teams = results[1] as Map<String, Team>;
-      final predictions = results[2] as Map<String, Prediction>;
+      final knockoutMatches = results[1] as List<Match>;
+      final teams = results[2] as Map<String, Team>;
+      final predictions = results[3] as Map<String, Prediction>;
 
       // Inicializa todos como null (sem palpite)
       final Map<String, List<int>?> palpites = {
@@ -86,6 +89,9 @@ class _MatchesScreenState extends State<MatchesScreen>
 
       setState(() {
         _groupMatches = groupMatches;
+        _knockoutMatchesById = {
+          for (final match in knockoutMatches) match.id: match,
+        };
         _teams = teams;
         _palpites.addAll(palpites);
         _loading = false;
@@ -227,9 +233,11 @@ class _MatchesScreenState extends State<MatchesScreen>
                       onSaveAll: _salvarTodos,
                     ),
                     KnockoutBracketScreen(
+                      groupId: widget.groupId,
                       cup: _cup!,
                       groupMatches: _groupMatches,
                       groupPredictions: _palpites,
+                      knockoutMatchesById: _knockoutMatchesById,
                       teams: _teams,
                     ),
                   ],

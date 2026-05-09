@@ -11,11 +11,12 @@ class ExtraPrediction {
   });
   factory ExtraPrediction.fromFirestore(
       String questionId, Map<String, dynamic> data) {
+    final savedAt = data['saved_at'];
     return ExtraPrediction(
       questionId: questionId,
       userId: data['user_id'] ?? '',
       answer: data['answer'] ?? '',
-      savedAt: (data['saved_at'] as dynamic).toDate(),
+      savedAt: savedAt != null ? (savedAt as dynamic).toDate() : DateTime.now(),
     );
   }
   Map<String, dynamic> toFirestore() {

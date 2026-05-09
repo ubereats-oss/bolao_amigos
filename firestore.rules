@@ -2,81 +2,229 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Funções auxiliares ────────────────────────────────────────────────
     function isAuth() {
       return request.auth != null;
     }
-    function isMember(groupId) {
-      return isAuth() &&
-        exists(/databases/$(database)/documents/bolao_groups/$(groupId)/members/$(request.auth.uid));
-    }
-    function isGroupAdmin(groupId) {
-      return isAuth() &&
-        get(/databases/$(database)/documents/bolao_groups/$(groupId)/members/$(request.auth.uid)).data.role == 'admin';
-    }
+
     function isAdmin() {
-      return isAuth() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+      return isAuth()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
     }
-    // ── Usuários ──────────────────────────────────────────────────────────
+
+    function groupExists(groupId) {
+      return exists(/databases/$(database)/documents/bolao_groups/$(groupId));
+    }
+
+    function isMember(groupId) {
+      return isAuth()
+        && groupExists(groupId)
+        && exists(/databases/$(database)/documents/bolao_groups/$(groupId)/members/$(request.auth.uid));
+    }
+
+    function isGroupAdmin(groupId) {
+      return isMember(groupId)
+        && get(/databases/$(database)/documents/bolao_groups/$(groupId)/members/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function groupCupId(groupId) {
+      return get(/databases/$(database)/documents/bolao_groups/$(groupId)).data.cup_id;
+    }
+
+    function cupIsOpenForGroup(groupId) {
+      return groupExists(groupId)
+        && exists(/databases/$(database)/documents/cups/$(groupCupId(groupId)))
+        && request.time < get(/databases/$(database)/documents/cups/$(groupCupId(groupId))).data.starts_at;
+    }
+
+    function validUserCreate(userId) {
+      return isAuth()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'email',
+          'is_admin',
+          'total_points',
+          'created_at',
+          'group_ids'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.is_admin == false
+        && request.resource.data.total_points == 0
+        && request.resource.data.created_at == request.time
+        && (!request.resource.data.keys().hasAny(['group_ids'])
+          || request.resource.data.group_ids is list);
+    }
+
+    function validUserUpdate(userId) {
+      return isAuth()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'group_ids'
+        ])
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['name'])
+          || request.resource.data.name is string)
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['group_ids'])
+          || request.resource.data.group_ids is list);
+    }
+
+    function validGroupCreate() {
+      return isAuth()
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'admin_uid',
+          'invite_code',
+          'cup_id',
+          'created_at'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.admin_uid == request.auth.uid
+        && request.resource.data.invite_code is string
+        && request.resource.data.cup_id is string
+        && exists(/databases/$(database)/documents/cups/$(request.resource.data.cup_id))
+        && request.resource.data.created_at == request.time;
+    }
+
+    function validAdminMemberCreate(groupId, userId) {
+      return isAuth()
+        && request.auth.uid == userId
+        && groupExists(groupId)
+        && get(/databases/$(database)/documents/bolao_groups/$(groupId)).data.admin_uid == userId
+        && request.resource.data.keys().hasOnly(['role', 'points', 'joined_at'])
+        && request.resource.data.role == 'admin'
+        && request.resource.data.points == 0
+        && request.resource.data.joined_at == request.time;
+    }
+
+    function validInviteMemberCreate(groupId, userId) {
+      return isAuth()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'role',
+          'points',
+          'invite_code',
+          'joined_at'
+        ])
+        && request.resource.data.role == 'member'
+        && request.resource.data.points == 0
+        && request.resource.data.invite_code is string
+        && exists(/databases/$(database)/documents/invite_codes/$(request.resource.data.invite_code))
+        && get(/databases/$(database)/documents/invite_codes/$(request.resource.data.invite_code)).data.group_id == groupId
+        && request.resource.data.joined_at == request.time;
+    }
+
+    function validPrediction(userId) {
+      return request.resource.data.keys().hasOnly([
+          'user_id',
+          'home_goals',
+          'away_goals',
+          'saved_at'
+        ])
+        && request.resource.data.user_id == userId
+        && request.resource.data.home_goals is int
+        && request.resource.data.away_goals is int
+        && request.resource.data.home_goals >= 0
+        && request.resource.data.home_goals <= 99
+        && request.resource.data.away_goals >= 0
+        && request.resource.data.away_goals <= 99
+        && request.resource.data.saved_at == request.time;
+    }
+
+    function validExtraPrediction(userId) {
+      return request.resource.data.keys().hasOnly([
+          'user_id',
+          'answer',
+          'saved_at'
+        ])
+        && request.resource.data.user_id == userId
+        && request.resource.data.answer is string
+        && request.resource.data.answer.size() > 0
+        && request.resource.data.saved_at == request.time;
+    }
+
     match /users/{userId} {
       allow read: if isAuth();
-      allow write: if isAuth() && request.auth.uid == userId;
-
-      match /knockout_predictions/{slotId} {
-        allow read: if isAuth();
-        allow write: if isAuth() && request.auth.uid == userId;
-      }
+      allow create: if validUserCreate(userId);
+      allow update: if validUserUpdate(userId);
+      allow delete: if isAuth() && request.auth.uid == userId;
     }
 
-    // ── Copa e subcoleções: leitura para autenticados ─────────────────────
     match /cups/{cupId} {
       allow read: if isAuth();
+      allow create, update, delete: if isAdmin();
+
       match /{document=**} {
         allow read: if isAuth();
-        allow write: if isAuth();
+        allow create, update, delete: if isAdmin();
       }
     }
 
-    match /{path=**}/matches/{matchId} {
-      allow read: if isAuth();
-    }
-    match /{path=**}/teams/{teamId} {
-      allow read: if isAuth();
-    }
-    match /{path=**}/players/{playerId} {
-      allow read: if isAuth();
-    }
-    match /{path=**}/extra_questions/{questionId} {
-      allow read: if isAuth();
-    }
-
-    // ── Grupos do bolão ───────────────────────────────────────────────────
-    match /bolao_groups/{groupId} {
+    match /invite_codes/{code} {
       allow get: if isAuth();
-      allow list: if isAuth();
-      // Criação: qualquer autenticado
-      allow create: if isAuth();
-      // Atualização e deleção: apenas admin do grupo
-      allow update, delete: if isGroupAdmin(groupId);
+      allow list: if false;
+      allow create: if isAuth()
+        && request.resource.data.keys().hasOnly([
+          'group_id',
+          'created_by',
+          'created_at'
+        ])
+        && request.resource.data.group_id is string
+        && request.resource.data.created_by == request.auth.uid
+        && isGroupAdmin(request.resource.data.group_id)
+        && request.resource.data.created_at == request.time;
+      allow update, delete: if isAdmin();
+    }
 
-      // Membros
+    match /bolao_groups/{groupId} {
+      allow get: if isMember(groupId);
+      allow list: if false;
+      allow create: if validGroupCreate();
+      allow update: if isGroupAdmin(groupId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && request.resource.data.name is string;
+      allow delete: if isGroupAdmin(groupId);
+
       match /members/{userId} {
-  allow read: if isMember(groupId) || (isAuth() && request.auth.uid == userId);
-  allow create, update: if (isAuth() && request.auth.uid == userId) || isGroupAdmin(groupId);
-        // Admin pode remover membros
-        allow delete: if isGroupAdmin(groupId) || request.auth.uid == userId;
+        allow read: if isMember(groupId);
+        allow create: if validAdminMemberCreate(groupId, userId)
+          || validInviteMemberCreate(groupId, userId);
+        allow update: if false;
+        allow delete: if isGroupAdmin(groupId)
+          || (isAuth() && request.auth.uid == userId);
 
-        // Palpites de jogo — isolados por grupo
         match /predictions/{matchId} {
           allow read: if isMember(groupId);
-          allow write: if isAuth() && request.auth.uid == userId;
+          allow create, update: if isMember(groupId)
+            && request.auth.uid == userId
+            && cupIsOpenForGroup(groupId)
+            && validPrediction(userId);
+          allow delete: if isMember(groupId)
+            && request.auth.uid == userId
+            && cupIsOpenForGroup(groupId);
         }
 
-        // Palpites extras — isolados por grupo
+        match /knockout_predictions/{slotId} {
+          allow read: if isMember(groupId);
+          allow create, update: if isMember(groupId)
+            && request.auth.uid == userId
+            && cupIsOpenForGroup(groupId)
+            && validPrediction(userId);
+          allow delete: if isMember(groupId)
+            && request.auth.uid == userId
+            && cupIsOpenForGroup(groupId);
+        }
+
         match /extra_predictions/{questionId} {
           allow read: if isMember(groupId);
-          allow write: if isAuth() && request.auth.uid == userId;
+          allow create, update: if isMember(groupId)
+            && request.auth.uid == userId
+            && cupIsOpenForGroup(groupId)
+            && validExtraPrediction(userId);
+          allow delete: if isMember(groupId)
+            && request.auth.uid == userId
+            && cupIsOpenForGroup(groupId);
         }
       }
     }
