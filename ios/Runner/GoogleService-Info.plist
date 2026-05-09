@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.salles.bolaocopadomundo</string>
+	<string>com.salles.bolao</string>
 	<key>PROJECT_ID</key>
 	<string>bolao-copa-do-mundo-salles</string>
 	<key>STORAGE_BUCKET</key>
