@@ -33,7 +33,10 @@ workflows:
 
       - name: Build iOS
         script: |
-          flutter build ipa --release
+          BUILD_NAME=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          BASE_BUILD_NUMBER=${PROJECT_BUILD_NUMBER:-${BUILD_NUMBER:-0}}
+          BUILD_NUMBER=$((BASE_BUILD_NUMBER + 200))
+          flutter build ipa --release --build-name="$BUILD_NAME" --build-number="$BUILD_NUMBER"
 
     artifacts:
       - build/ios/ipa/*.ipa
