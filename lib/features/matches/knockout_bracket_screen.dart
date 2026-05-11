@@ -267,6 +267,7 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
 
   Future<void> _salvarTodos(List<ResolvedMatch> matches) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
+    final tabAtSave = _tabController.index;
     final salvando = matches.where((r) {
       return r.canPredict &&
           (_localScoreSet.contains(r.def.id) ||
@@ -283,10 +284,19 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
       }
       _recomputar();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${salvando.length} palpites salvos!'),
-          backgroundColor: const Color(0xFF1A6B3C),
-        ));
+        final isLastTab = tabAtSave == _tabPhases.length - 1;
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(
+              content: Text('${salvando.length} palpites salvos!'),
+              backgroundColor: const Color(0xFF1A6B3C),
+              duration: const Duration(seconds: 2),
+            ))
+            .closed
+            .then((_) {
+          if (mounted && !isLastTab) {
+            _tabController.animateTo(tabAtSave + 1);
+          }
+        });
       }
     } catch (e) {
       debugPrint('_salvarTodos knockout: $e');

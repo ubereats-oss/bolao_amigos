@@ -1,5 +1,3 @@
-@echo off
-
 REM Lê a linha "version: X.Y.Z+N" do pubspec.yaml
 for /f "tokens=2 delims= " %%a in ('findstr "^version:" pubspec.yaml') do set FULLVER=%%a
 
