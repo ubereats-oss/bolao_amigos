@@ -5,12 +5,14 @@ class TeamBlock extends StatelessWidget {
   final Team? team;
   final bool alignRight;
   final String? fallbackLabel;
+  final String? subtitle;
 
   const TeamBlock({
     super.key,
     required this.team,
     this.alignRight = false,
     this.fallbackLabel,
+    this.subtitle,
   });
 
   @override
@@ -33,11 +35,21 @@ class TeamBlock extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           team?.name ?? fallbackLabel ?? '?',
-          textAlign: alignRight ? TextAlign.right : TextAlign.left,
+          textAlign: alignRight ? TextAlign.right : TextAlign.center,
           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            subtitle!,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ],
     );
   }

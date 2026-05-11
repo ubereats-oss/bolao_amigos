@@ -118,7 +118,8 @@ class BracketEngine {
       Map<String, GroupStanding> standings) {
     final thirds = <MapEntry<String, TeamStanding>>[];
     for (final gs in standings.values) {
-      if (gs.standings.length >= 3) {
+      if (gs.standings.length >= 3 &&
+          gs.standings.every((ts) => ts.gamesPlayed > 0)) {
         thirds.add(MapEntry(gs.groupId, gs.standings[2]));
       }
     }
@@ -209,6 +210,8 @@ class BracketEngine {
       final groupId = code.substring(1).toLowerCase();
       final gs = standings[groupId];
       if (gs == null || gs.standings.length <= pos) return null;
+      // Só mostra o time se todos os times do grupo tiverem pelo menos 1 jogo previsto
+      if (gs.standings.any((ts) => ts.gamesPlayed == 0)) return null;
       return gs.standings[pos].teamId;
     }
     return null;

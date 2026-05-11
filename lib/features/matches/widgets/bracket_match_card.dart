@@ -61,6 +61,12 @@ class BracketMatchCard extends StatelessWidget {
   Widget _buildCard(Team? home, Team? away, String phaseLabel) {
     final homeLabel = home?.name ?? resolved.homeSlotLabel;
     final awayLabel = away?.name ?? resolved.awaySlotLabel;
+    // Na Rodada de 32, mostra a colocação no grupo abaixo da bandeira
+    final isR32 = resolved.def.phase == 'r32';
+    final homeSubtitle =
+        (isR32 && resolved.homeTeamId != null) ? resolved.homeSlotLabel : null;
+    final awaySubtitle =
+        (isR32 && resolved.awayTeamId != null) ? resolved.awaySlotLabel : null;
     final officialFinished = officialMatch?.finished ?? false;
     final hasSavedPrediction = savedPrediction != null;
     final pontos = officialFinished && officialMatch?.groupId != null
@@ -140,6 +146,7 @@ class BracketMatchCard extends StatelessWidget {
               child: TeamBlock(
                 team: home,
                 fallbackLabel: homeLabel,
+                subtitle: homeSubtitle,
               ),
             ),
             scoreWidget,
@@ -148,6 +155,7 @@ class BracketMatchCard extends StatelessWidget {
                 team: away,
                 alignRight: true,
                 fallbackLabel: awayLabel,
+                subtitle: awaySubtitle,
               ),
             ),
           ],
