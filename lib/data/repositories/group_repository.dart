@@ -160,6 +160,21 @@ class GroupRepository {
     await batch.commit();
   }
 
+  Future<void> deleteAllKnockoutPredictions(
+      String groupId, String userId) async {
+    final ref = _groups
+        .doc(groupId)
+        .collection('members')
+        .doc(userId)
+        .collection('knockout_predictions');
+    final snap = await ref.get();
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   // ── Palpite extra por grupo ──────────────────────────────────────────────
   CollectionReference _extraPredictions(String groupId, String userId) =>
       _groups

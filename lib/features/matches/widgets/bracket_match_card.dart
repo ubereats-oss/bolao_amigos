@@ -104,6 +104,8 @@ class BracketMatchCard extends StatelessWidget {
         resolved.awayTeamId != null &&
         (canSave || savedPrediction?.winner != null);
 
+    // Sem placar definido (nem salvo nem editado): passa null para exibir '—'
+    final bool noScore = !scoreIsSet && !hasSavedPrediction;
     final scoreWidget = officialFinished && !hasSavedPrediction
         ? const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -118,8 +120,8 @@ class BracketMatchCard extends StatelessWidget {
             ),
           )
         : ScoreControl(
-            homeGoals: displayPalpite[0],
-            awayGoals: displayPalpite[1],
+            homeGoals: noScore ? null : displayPalpite[0],
+            awayGoals: noScore ? null : displayPalpite[1],
             locked: controlLocked,
             onIncrementHome: () => onIncrement(0),
             onDecrementHome: () => onDecrement(0),

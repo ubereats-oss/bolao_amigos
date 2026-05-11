@@ -38,6 +38,7 @@ class _MatchesScreenState extends State<MatchesScreen>
   bool _savingAll = false;
   bool _loading = true;
   String? _erro;
+  int _koKey = 0;
 
   @override
   void initState() {
@@ -201,12 +202,14 @@ class _MatchesScreenState extends State<MatchesScreen>
   }
 
   Future<void> _apagarTodos() async {
+    final isGroupTab = _tabController.index == 0;
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Apagar todos os palpites'),
-        content: const Text(
-            'Todos os seus palpites da fase de grupos serão removidos. Deseja continuar?'),
+        title: const Text('Apagar palpites'),
+        content: Text(isGroupTab
+            ? 'Todos os seus palpites da fase de grupos e do mata-mata serão removidos. Deseja continuar?'
+            : 'Todos os seus palpites de mata-mata serão removidos. Deseja continuar?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -225,12 +228,16 @@ class _MatchesScreenState extends State<MatchesScreen>
     final uid = FirebaseAuth.instance.currentUser!.uid;
     setState(() => _savingAll = true);
     try {
-      await _groupRepo.deleteAllPredictions(widget.groupId, uid);
-      setState(() {
-        for (final key in _palpites.keys.toList()) {
-          _palpites[key] = null;
-        }
-      });
+      if (isGroupTab) {
+        await _groupRepo.deleteAllPredictions(widget.groupId, uid);
+        setState(() {
+          for (final key in _palpites.keys.toList()) {
+            _palpites[key] = null;
+          }
+        });
+      }
+      await _groupRepo.deleteAllKnockoutPredictions(widget.groupId, uid);
+      setState(() => _koKey++);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Palpites apagados.'),
@@ -296,6 +303,7 @@ class _MatchesScreenState extends State<MatchesScreen>
                       onSaveAll: _salvarTodos,
                     ),
                     KnockoutBracketScreen(
+                      key: ValueKey(_koKey),
                       groupId: widget.groupId,
                       cup: _cup!,
                       groupMatches: _groupMatches,
