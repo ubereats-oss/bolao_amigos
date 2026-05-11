@@ -7,6 +7,7 @@ import '../../data/models/prediction.dart';
 import '../../data/repositories/match_repository.dart';
 import '../../data/repositories/group_repository.dart';
 import '../../services/firestore_service.dart';
+import '../../core/constants/bracket_data.dart';
 import 'knockout_bracket_screen.dart';
 import 'widgets/match_list_tab.dart';
 
@@ -39,6 +40,7 @@ class _MatchesScreenState extends State<MatchesScreen>
   bool _loading = true;
   String? _erro;
   int _koKey = 0;
+  String _currentKoPhase = 'r32';
 
   @override
   void initState() {
@@ -201,15 +203,39 @@ class _MatchesScreenState extends State<MatchesScreen>
     }
   }
 
+  List<String> _koSlotsFromPhase(String fromPhase) {
+    final idx = BracketData.phases.indexOf(fromPhase);
+    final phases = (idx >= 0
+            ? BracketData.phases.sublist(idx)
+            : BracketData.phases)
+        .toSet();
+    return BracketData.allMatches
+        .where((m) => phases.contains(m.phase))
+        .map((m) => m.id)
+        .toList();
+  }
+
   Future<void> _apagarTodos() async {
     final isGroupTab = _tabController.index == 0;
+
+    final String mensagem;
+    if (isGroupTab) {
+      mensagem =
+          'Todos os seus palpites da fase de grupos e do mata-mata serão removidos. Deseja continuar?';
+    } else {
+      final label =
+          BracketData.phaseLabels[_currentKoPhase] ?? _currentKoPhase;
+      final isUltimaFase = _currentKoPhase == 'final';
+      mensagem = isUltimaFase
+          ? 'Os palpites da $label serão removidos. Deseja continuar?'
+          : 'Os palpites da $label e das fases seguintes serão removidos. Deseja continuar?';
+    }
+
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Apagar palpites'),
-        content: Text(isGroupTab
-            ? 'Todos os seus palpites da fase de grupos e do mata-mata serão removidos. Deseja continuar?'
-            : 'Todos os seus palpites de mata-mata serão removidos. Deseja continuar?'),
+        content: Text(mensagem),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -235,8 +261,12 @@ class _MatchesScreenState extends State<MatchesScreen>
             _palpites[key] = null;
           }
         });
+        await _groupRepo.deleteAllKnockoutPredictions(widget.groupId, uid);
+      } else {
+        final slots = _koSlotsFromPhase(_currentKoPhase);
+        await _groupRepo.deleteKnockoutPredictionsForSlots(
+            widget.groupId, uid, slots);
       }
-      await _groupRepo.deleteAllKnockoutPredictions(widget.groupId, uid);
       setState(() => _koKey++);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -310,6 +340,8 @@ class _MatchesScreenState extends State<MatchesScreen>
                       groupPredictions: _palpites,
                       knockoutMatchesById: _knockoutMatchesById,
                       teams: _teams,
+                      onPhaseChanged: (phase) =>
+                          setState(() => _currentKoPhase = phase),
                     ),
                   ],
                 ),

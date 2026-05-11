@@ -18,6 +18,7 @@ class KnockoutBracketScreen extends StatefulWidget {
   final Map<String, List<int>?> groupPredictions;
   final Map<String, Match> knockoutMatchesById;
   final Map<String, Team> teams;
+  final void Function(String phase)? onPhaseChanged;
 
   const KnockoutBracketScreen({
     super.key,
@@ -27,6 +28,7 @@ class KnockoutBracketScreen extends StatefulWidget {
     required this.groupPredictions,
     required this.knockoutMatchesById,
     required this.teams,
+    this.onPhaseChanged,
   });
 
   @override
@@ -57,6 +59,11 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabPhases.length, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        widget.onPhaseChanged?.call(_tabPhases[_tabController.index]);
+      }
+    });
     _inicializar();
   }
 

@@ -175,6 +175,21 @@ class GroupRepository {
     await batch.commit();
   }
 
+  Future<void> deleteKnockoutPredictionsForSlots(
+      String groupId, String userId, List<String> slotIds) async {
+    if (slotIds.isEmpty) return;
+    final ref = _groups
+        .doc(groupId)
+        .collection('members')
+        .doc(userId)
+        .collection('knockout_predictions');
+    final batch = _db.batch();
+    for (final slotId in slotIds) {
+      batch.delete(ref.doc(slotId));
+    }
+    await batch.commit();
+  }
+
   // ── Palpite extra por grupo ──────────────────────────────────────────────
   CollectionReference _extraPredictions(String groupId, String userId) =>
       _groups
