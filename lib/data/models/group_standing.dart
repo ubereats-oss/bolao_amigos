@@ -3,12 +3,14 @@ class TeamStanding {
   int points;
   int goalsFor;
   int goalsAgainst;
+  int gamesPlayed;
 
   TeamStanding({
     required this.teamId,
     this.points = 0,
     this.goalsFor = 0,
     this.goalsAgainst = 0,
+    this.gamesPlayed = 0,
   });
 
   int get goalDiff => goalsFor - goalsAgainst;

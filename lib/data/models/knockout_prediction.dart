@@ -1,15 +1,17 @@
 class KnockoutPrediction {
-  final String slotId; // matchId do confronto (ex: 'r32_01')
+  final String slotId;
   final String userId;
-  final int homeGoals;
-  final int awayGoals;
+  final int? homeGoals;
+  final int? awayGoals;
+  final String? winner; // teamId do vencedor explícito
   final DateTime savedAt;
 
   const KnockoutPrediction({
     required this.slotId,
     required this.userId,
-    required this.homeGoals,
-    required this.awayGoals,
+    this.homeGoals,
+    this.awayGoals,
+    this.winner,
     required this.savedAt,
   });
 
@@ -18,8 +20,9 @@ class KnockoutPrediction {
     return KnockoutPrediction(
       slotId: slotId,
       userId: data['user_id'] ?? '',
-      homeGoals: data['home_goals'] ?? 0,
-      awayGoals: data['away_goals'] ?? 0,
+      homeGoals: data['home_goals'] as int?,
+      awayGoals: data['away_goals'] as int?,
+      winner: data['winner'] as String?,
       savedAt: data['saved_at'] != null
           ? (data['saved_at'] as dynamic).toDate()
           : DateTime.now(),
@@ -28,8 +31,9 @@ class KnockoutPrediction {
 
   Map<String, dynamic> toFirestore() => {
         'user_id': userId,
-        'home_goals': homeGoals,
-        'away_goals': awayGoals,
+        if (homeGoals != null) 'home_goals': homeGoals,
+        if (awayGoals != null) 'away_goals': awayGoals,
+        if (winner != null) 'winner': winner,
         'saved_at': savedAt,
       };
 }

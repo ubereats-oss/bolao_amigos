@@ -132,6 +132,21 @@ service cloud.firestore {
         && request.resource.data.saved_at == request.time;
     }
 
+    function validKnockoutPrediction(userId) {
+      let data = request.resource.data;
+      let hasGoals = data.keys().hasAll(['home_goals', 'away_goals']);
+      let hasWinner = data.keys().hasAny(['winner']);
+      return data.keys().hasOnly(['user_id', 'home_goals', 'away_goals', 'winner', 'saved_at'])
+        && data.user_id == userId
+        && (hasGoals || hasWinner)
+        && (!hasGoals || (
+            data.home_goals is int && data.home_goals >= 0 && data.home_goals <= 99
+            && data.away_goals is int && data.away_goals >= 0 && data.away_goals <= 99
+          ))
+        && (!hasWinner || data.winner is string)
+        && data.saved_at == request.time;
+    }
+
     function validExtraPrediction(userId) {
       return request.resource.data.keys().hasOnly([
           'user_id',
@@ -210,7 +225,7 @@ service cloud.firestore {
           allow create, update: if isMember(groupId)
             && request.auth.uid == userId
             && cupIsOpenForGroup(groupId)
-            && validPrediction(userId);
+            && validKnockoutPrediction(userId);
           allow delete: if isMember(groupId)
             && request.auth.uid == userId
             && cupIsOpenForGroup(groupId);

@@ -80,8 +80,10 @@ class BracketEngine {
 
       home.goalsFor += hGoals;
       home.goalsAgainst += aGoals;
+      home.gamesPlayed += 1;
       away.goalsFor += aGoals;
       away.goalsAgainst += hGoals;
+      away.gamesPlayed += 1;
 
       if (hGoals > aGoals) {
         home.points += 3;
@@ -269,12 +271,21 @@ class BracketEngine {
         if (pred != null && homeId != null && awayId != null) {
           String winner;
           String loser;
-          if (pred.homeGoals > pred.awayGoals) {
-            winner = homeId;
-            loser = awayId;
-          } else if (pred.awayGoals > pred.homeGoals) {
-            winner = awayId;
-            loser = homeId;
+          if (pred.winner != null) {
+            // vencedor explícito tem prioridade sobre placar
+            winner = pred.winner!;
+            loser = winner == homeId ? awayId : homeId;
+          } else if (pred.homeGoals != null && pred.awayGoals != null) {
+            if (pred.homeGoals! > pred.awayGoals!) {
+              winner = homeId;
+              loser = awayId;
+            } else if (pred.awayGoals! > pred.homeGoals!) {
+              winner = awayId;
+              loser = homeId;
+            } else {
+              winner = homeId; // empate: time da casa avança (padrão)
+              loser = awayId;
+            }
           } else {
             winner = homeId;
             loser = awayId;

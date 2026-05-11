@@ -151,6 +151,15 @@ class GroupRepository {
     });
   }
 
+  Future<void> deleteAllPredictions(String groupId, String userId) async {
+    final snap = await _predictions(groupId, userId).get();
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
   // ── Palpite extra por grupo ──────────────────────────────────────────────
   CollectionReference _extraPredictions(String groupId, String userId) =>
       _groups

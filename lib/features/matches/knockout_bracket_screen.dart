@@ -41,6 +41,9 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
 
   Map<String, KnockoutPrediction> _koPreds = {};
   final Map<String, List<int>> _localPalpites = {};
+  final Map<String, String?> _localWinners = {};
+  final Set<String> _localScoreSet = {};
+  String _uid = '';
   final Map<String, bool> _saving = {};
   bool _savingAll = false;
   bool _loading = true;
@@ -74,6 +77,7 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
   Future<void> _inicializar() async {
     try {
       final uid = FirebaseAuth.instance.currentUser!.uid;
+      _uid = uid;
       final koPreds = await _knockoutRepo.fetchAll(widget.groupId, uid);
 
       final Map<String, List<String>> groupTeams = {};
@@ -89,21 +93,31 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
       }
 
       final Map<String, List<int>> localPalpites = {};
+      final Map<String, String?> localWinners = {};
+      final Set<String> localScoreSet = {};
       for (final def in BracketData.allMatches) {
         final saved = koPreds[def.id];
-        localPalpites[def.id] =
-            saved != null ? [saved.homeGoals, saved.awayGoals] : [0, 0];
+        if (saved?.homeGoals != null && saved?.awayGoals != null) {
+          localPalpites[def.id] = [saved!.homeGoals!, saved.awayGoals!];
+          localScoreSet.add(def.id);
+        } else {
+          localPalpites[def.id] = [0, 0];
+        }
+        localWinners[def.id] = saved?.winner;
       }
 
       setState(() {
         _koPreds = koPreds;
         _groupTeams = groupTeams;
         _localPalpites.addAll(localPalpites);
+        _localWinners.addAll(localWinners);
+        _localScoreSet.addAll(localScoreSet);
         _loading = false;
       });
 
       _recomputar();
-    } catch (_) {
+    } catch (e) {
+      debugPrint('_inicializar knockout: $e');
       setState(() {
         _erro = 'Erro ao carregar mata-mata.';
         _loading = false;
@@ -111,11 +125,41 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
     }
   }
 
+  Map<String, KnockoutPrediction> _efectivePreds() {
+    final Map<String, KnockoutPrediction> effective = {
+      for (final e in _koPreds.entries) e.key: e.value,
+    };
+    for (final entry in _localWinners.entries) {
+      final slotId = entry.key;
+      final winner = entry.value;
+      if (winner == null) continue;
+      if (effective.containsKey(slotId)) {
+        final ex = effective[slotId]!;
+        effective[slotId] = KnockoutPrediction(
+          slotId: ex.slotId,
+          userId: ex.userId,
+          homeGoals: ex.homeGoals,
+          awayGoals: ex.awayGoals,
+          winner: winner,
+          savedAt: ex.savedAt,
+        );
+      } else {
+        effective[slotId] = KnockoutPrediction(
+          slotId: slotId,
+          userId: _uid,
+          winner: winner,
+          savedAt: DateTime.now(),
+        );
+      }
+    }
+    return effective;
+  }
+
   void _recomputar() {
     final engine = BracketEngine(
       groupMatches: widget.groupMatches,
       groupPredictions: widget.groupPredictions,
-      knockoutPredictions: _koPreds,
+      knockoutPredictions: _efectivePreds(),
       groupTeams: _groupTeams,
     );
     setState(() {
@@ -128,7 +172,9 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
     setState(() {
       _localPalpites[slotId]![side] =
           (_localPalpites[slotId]![side] + 1).clamp(0, 99);
+      _localScoreSet.add(slotId);
     });
+    _autoAtualizarVencedor(slotId);
   }
 
   void _decrementar(String slotId, int side) {
@@ -136,23 +182,61 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
     setState(() {
       _localPalpites[slotId]![side] =
           (_localPalpites[slotId]![side] - 1).clamp(0, 99);
+      _localScoreSet.add(slotId);
     });
+    _autoAtualizarVencedor(slotId);
+  }
+
+  void _autoAtualizarVencedor(String slotId) {
+    final gols = _localPalpites[slotId];
+    if (gols == null || gols[0] == gols[1]) return;
+    ResolvedMatch? rm;
+    for (final r in _resolved) {
+      if (r.def.id == slotId) {
+        rm = r;
+        break;
+      }
+    }
+    if (rm == null) return;
+    final winner = gols[0] > gols[1] ? rm.homeTeamId : rm.awayTeamId;
+    if (winner != null) {
+      setState(() => _localWinners[slotId] = winner);
+      _recomputar();
+    }
+  }
+
+  void _selecionarVencedor(String slotId, String teamId) {
+    setState(() => _localWinners[slotId] = teamId);
+    _recomputar();
+  }
+
+  KnockoutPrediction _buildPred(String uid, ResolvedMatch rm) {
+    final hasScore = _localScoreSet.contains(rm.def.id);
+    final gols = hasScore ? _localPalpites[rm.def.id] : null;
+    String? winner = _localWinners[rm.def.id];
+    if (gols != null && gols[0] != gols[1]) {
+      winner = gols[0] > gols[1] ? rm.homeTeamId : rm.awayTeamId;
+    }
+    return KnockoutPrediction(
+      slotId: rm.def.id,
+      userId: uid,
+      homeGoals: gols?[0],
+      awayGoals: gols?[1],
+      winner: winner,
+      savedAt: DateTime.now(),
+    );
   }
 
   Future<void> _salvar(ResolvedMatch rm) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     setState(() => _saving[rm.def.id] = true);
     try {
-      final gols = _localPalpites[rm.def.id]!;
-      final pred = KnockoutPrediction(
-        slotId: rm.def.id,
-        userId: uid,
-        homeGoals: gols[0],
-        awayGoals: gols[1],
-        savedAt: DateTime.now(),
-      );
+      final pred = _buildPred(uid, rm);
       await _knockoutRepo.save(widget.groupId, pred);
-      setState(() => _koPreds[rm.def.id] = pred);
+      setState(() {
+        _koPreds[rm.def.id] = pred;
+        _localWinners[rm.def.id] = pred.winner;
+      });
       _recomputar();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -161,7 +245,8 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
           backgroundColor: Color(0xFF1A6B3C),
         ));
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('_salvar knockout: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Erro ao salvar palpite.'),
@@ -175,21 +260,19 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
 
   Future<void> _salvarTodos(List<ResolvedMatch> matches) async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    final salvando = matches.where((r) => r.canPredict).toList();
+    final salvando = matches.where((r) {
+      return r.canPredict &&
+          (_localScoreSet.contains(r.def.id) ||
+              _localWinners[r.def.id] != null);
+    }).toList();
     if (salvando.isEmpty) return;
     setState(() => _savingAll = true);
     try {
       for (final rm in salvando) {
-        final gols = _localPalpites[rm.def.id]!;
-        final pred = KnockoutPrediction(
-          slotId: rm.def.id,
-          userId: uid,
-          homeGoals: gols[0],
-          awayGoals: gols[1],
-          savedAt: DateTime.now(),
-        );
+        final pred = _buildPred(uid, rm);
         await _knockoutRepo.save(widget.groupId, pred);
         _koPreds[rm.def.id] = pred;
+        _localWinners[rm.def.id] = pred.winner;
       }
       _recomputar();
       if (mounted) {
@@ -198,7 +281,8 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
           backgroundColor: const Color(0xFF1A6B3C),
         ));
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('_salvarTodos knockout: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Erro ao salvar palpites.'),
@@ -249,12 +333,15 @@ class _KnockoutBracketScreenState extends State<KnockoutBracketScreen>
                 officialMatches: widget.knockoutMatchesById,
                 savedPredictions: _koPreds,
                 localPalpites: _localPalpites,
+                localWinners: _localWinners,
+                localScoreSet: _localScoreSet,
                 saving: _saving,
                 savingAll: _savingAll,
                 onIncrement: _incrementar,
                 onDecrement: _decrementar,
                 onSave: _salvar,
                 onSaveAll: () => _salvarTodos(matches),
+                onSelectWinner: _selecionarVencedor,
               );
             }).toList(),
           ),
@@ -273,12 +360,15 @@ class _PhaseTab extends StatelessWidget {
   final Map<String, Match> officialMatches;
   final Map<String, KnockoutPrediction> savedPredictions;
   final Map<String, List<int>> localPalpites;
+  final Map<String, String?> localWinners;
+  final Set<String> localScoreSet;
   final Map<String, bool> saving;
   final bool savingAll;
   final void Function(String slotId, int side) onIncrement;
   final void Function(String slotId, int side) onDecrement;
   final Future<void> Function(ResolvedMatch) onSave;
   final Future<void> Function() onSaveAll;
+  final void Function(String slotId, String teamId) onSelectWinner;
 
   const _PhaseTab({
     required this.matches,
@@ -287,12 +377,15 @@ class _PhaseTab extends StatelessWidget {
     required this.officialMatches,
     required this.savedPredictions,
     required this.localPalpites,
+    required this.localWinners,
+    required this.localScoreSet,
     required this.saving,
     required this.savingAll,
     required this.onIncrement,
     required this.onDecrement,
     required this.onSave,
     required this.onSaveAll,
+    required this.onSelectWinner,
   });
 
   @override
@@ -348,10 +441,13 @@ class _PhaseTab extends StatelessWidget {
                 savedPrediction: savedPredictions[rm.def.id],
                 locked: cup.isLocked,
                 palpite: localPalpites[rm.def.id] ?? [0, 0],
+                scoreIsSet: localScoreSet.contains(rm.def.id),
+                selectedWinner: localWinners[rm.def.id],
                 isSaving: saving[rm.def.id] ?? false,
                 onIncrement: (side) => onIncrement(rm.def.id, side),
                 onDecrement: (side) => onDecrement(rm.def.id, side),
                 onSave: () => onSave(rm),
+                onSelectWinner: (teamId) => onSelectWinner(rm.def.id, teamId),
               );
             },
           ),

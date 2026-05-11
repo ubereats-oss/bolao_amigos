@@ -16,10 +16,13 @@ class BracketMatchCard extends StatelessWidget {
   final KnockoutPrediction? savedPrediction;
   final bool locked;
   final List<int> palpite;
+  final bool scoreIsSet;
+  final String? selectedWinner;
   final bool isSaving;
   final void Function(int side) onIncrement;
   final void Function(int side) onDecrement;
   final VoidCallback onSave;
+  final void Function(String teamId) onSelectWinner;
 
   const BracketMatchCard({
     super.key,
@@ -29,10 +32,13 @@ class BracketMatchCard extends StatelessWidget {
     required this.savedPrediction,
     required this.locked,
     required this.palpite,
+    required this.scoreIsSet,
+    required this.selectedWinner,
     required this.isSaving,
     required this.onIncrement,
     required this.onDecrement,
     required this.onSave,
+    required this.onSelectWinner,
   });
 
   @override
@@ -62,16 +68,42 @@ class BracketMatchCard extends StatelessWidget {
             ? ScoringRules.matchPoints(
                 officialHomeGoals: officialMatch?.officialHomeGoals ?? 0,
                 officialAwayGoals: officialMatch?.officialAwayGoals ?? 0,
-                predictedHomeGoals: savedPrediction!.homeGoals,
-                predictedAwayGoals: savedPrediction!.awayGoals,
+                predictedHomeGoals: savedPrediction!.homeGoals ?? 0,
+                predictedAwayGoals: savedPrediction!.awayGoals ?? 0,
               )
             : 0
         : null;
-    final displayPalpite = hasSavedPrediction
-        ? [savedPrediction!.homeGoals, savedPrediction!.awayGoals]
+
+    final displayPalpite = (hasSavedPrediction &&
+            savedPrediction!.homeGoals != null &&
+            savedPrediction!.awayGoals != null)
+        ? [savedPrediction!.homeGoals!, savedPrediction!.awayGoals!]
         : palpite;
+
     final controlLocked = locked || officialFinished || !resolved.canPredict;
     final canSave = !locked && !officialFinished && resolved.canPredict;
+
+    // Vencedor efetivo: derivado do placar (quando claro) ou seleção manual
+    final String? effectiveWinner;
+    if (scoreIsSet && palpite[0] != palpite[1]) {
+      effectiveWinner =
+          palpite[0] > palpite[1] ? resolved.homeTeamId : resolved.awayTeamId;
+    } else {
+      effectiveWinner = selectedWinner;
+    }
+
+    // Seleção manual disponível quando: pode salvar E (placar não set OU empate)
+    final canManuallySelectWinner = canSave &&
+        resolved.homeTeamId != null &&
+        resolved.awayTeamId != null &&
+        (!scoreIsSet || palpite[0] == palpite[1]);
+
+    // Mostra linha de vencedor quando editando ou quando vencedor foi salvo
+    final showWinnerRow = !officialFinished &&
+        resolved.homeTeamId != null &&
+        resolved.awayTeamId != null &&
+        (canSave || savedPrediction?.winner != null);
+
     final scoreWidget = officialFinished && !hasSavedPrediction
         ? const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -118,6 +150,18 @@ class BracketMatchCard extends StatelessWidget {
             ),
           ],
         ),
+        if (showWinnerRow) ...[
+          const SizedBox(height: 8),
+          _WinnerRow(
+            homeId: resolved.homeTeamId!,
+            awayId: resolved.awayTeamId!,
+            homeLabel: homeLabel,
+            awayLabel: awayLabel,
+            effectiveWinner: effectiveWinner,
+            canSelect: canManuallySelectWinner,
+            onSelect: onSelectWinner,
+          ),
+        ],
         const SizedBox(height: 10),
         if (officialFinished)
           Row(
@@ -165,6 +209,117 @@ class BracketMatchCard extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: Colors.orange),
           ),
       ],
+    );
+  }
+}
+
+// ─── Linha de seleção de vencedor ─────────────────────────────────────────────
+
+class _WinnerRow extends StatelessWidget {
+  final String homeId;
+  final String awayId;
+  final String homeLabel;
+  final String awayLabel;
+  final String? effectiveWinner;
+  final bool canSelect;
+  final void Function(String teamId) onSelect;
+
+  const _WinnerRow({
+    required this.homeId,
+    required this.awayId,
+    required this.homeLabel,
+    required this.awayLabel,
+    required this.effectiveWinner,
+    required this.canSelect,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Text('Vencedor',
+            style: TextStyle(fontSize: 11, color: Colors.grey)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _WinnerChip(
+            label: homeLabel,
+            isSelected: effectiveWinner == homeId,
+            canSelect: canSelect,
+            onTap: () => onSelect(homeId),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _WinnerChip(
+            label: awayLabel,
+            isSelected: effectiveWinner == awayId,
+            canSelect: canSelect,
+            onTap: () => onSelect(awayId),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WinnerChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final bool canSelect;
+  final VoidCallback onTap;
+
+  const _WinnerChip({
+    required this.label,
+    required this.isSelected,
+    required this.canSelect,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF1A6B3C);
+    return GestureDetector(
+      onTap: canSelect ? onTap : null,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? green.withValues(alpha: 0.10)
+              : Colors.grey.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color:
+                isSelected ? green : Colors.grey.withValues(alpha: 0.25),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (isSelected) ...[
+              const Icon(Icons.emoji_events_outlined,
+                  size: 12, color: green),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight:
+                      isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? green : Colors.grey[600],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

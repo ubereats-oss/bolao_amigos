@@ -132,10 +132,7 @@ class _GroupCard extends StatelessWidget {
             final team = teams[ts.teamId];
             final isClassified = pos < 2;
             final isThird = pos == 2;
-            final jogos =
-                ts.goalsFor > 0 || ts.goalsAgainst > 0 || ts.points > 0
-                    ? _jogosJogados(ts)
-                    : 0;
+            final jogos = _jogosJogados(ts);
 
             return Container(
               color: isClassified
@@ -249,8 +246,5 @@ class _GroupCard extends StatelessWidget {
     );
   }
 
-  int _jogosJogados(TeamStanding ts) {
-    if (ts.points == 0 && ts.goalsFor == 0 && ts.goalsAgainst == 0) return 0;
-    return (ts.points / 3).ceil().clamp(0, 3);
-  }
+  int _jogosJogados(TeamStanding ts) => ts.gamesPlayed;
 }

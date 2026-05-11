@@ -165,8 +165,10 @@ class _MatchesScreenState extends State<MatchesScreen>
     final uid = FirebaseAuth.instance.currentUser!.uid;
     setState(() => _savingAll = true);
     try {
+      int count = 0;
       for (final match in _groupMatches) {
-        final gols = _palpites[match.id] ?? [0, 0];
+        final gols = _palpites[match.id];
+        if (gols == null) continue; // sem palpite: não salva
         await _groupRepo.savePrediction(
           widget.groupId,
           Prediction(
@@ -177,11 +179,11 @@ class _MatchesScreenState extends State<MatchesScreen>
             savedAt: DateTime.now(),
           ),
         );
-        _palpites[match.id] = gols;
+        count++;
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${_groupMatches.length} palpites salvos!'),
+          content: Text('$count palpites salvos!'),
           backgroundColor: const Color(0xFF1A6B3C),
         ));
       }
@@ -198,6 +200,56 @@ class _MatchesScreenState extends State<MatchesScreen>
     }
   }
 
+  Future<void> _apagarTodos() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Apagar todos os palpites'),
+        content: const Text(
+            'Todos os seus palpites da fase de grupos serão removidos. Deseja continuar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Apagar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true) return;
+
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    setState(() => _savingAll = true);
+    try {
+      await _groupRepo.deleteAllPredictions(widget.groupId, uid);
+      setState(() {
+        for (final key in _palpites.keys.toList()) {
+          _palpites[key] = null;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Palpites apagados.'),
+          backgroundColor: Color(0xFF1A6B3C),
+        ));
+      }
+    } catch (e) {
+      debugPrint('_apagarTodos: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Erro ao apagar palpites.'),
+          backgroundColor: Colors.red,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _savingAll = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -205,6 +257,14 @@ class _MatchesScreenState extends State<MatchesScreen>
         title: const Text('Meus Palpites'),
         backgroundColor: const Color(0xFF1A6B3C),
         foregroundColor: Colors.white,
+        actions: [
+          if (!_loading && _erro == null && (_cup?.isLocked == false))
+            IconButton(
+              icon: const Icon(Icons.delete_sweep_outlined),
+              tooltip: 'Apagar todos os palpites',
+              onPressed: _savingAll ? null : _apagarTodos,
+            ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: Colors.white,
