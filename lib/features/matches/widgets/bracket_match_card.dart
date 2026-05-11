@@ -111,7 +111,7 @@ class BracketMatchCard extends StatelessWidget {
         (canSave || savedPrediction?.winner != null);
 
     // Sem placar definido (nem salvo nem editado): passa null para exibir '—'
-    final bool noScore = !scoreIsSet && !hasSavedPrediction;
+    final bool noScore = !scoreIsSet && savedPrediction?.homeGoals == null;
     final scoreWidget = officialFinished && !hasSavedPrediction
         ? const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
