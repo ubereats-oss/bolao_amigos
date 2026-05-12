@@ -165,6 +165,8 @@ class BracketMatchCard extends StatelessWidget {
           _WinnerRow(
             homeId: resolved.homeTeamId!,
             awayId: resolved.awayTeamId!,
+            homeTeam: home,
+            awayTeam: away,
             homeLabel: homeLabel,
             awayLabel: awayLabel,
             effectiveWinner: effectiveWinner,
@@ -228,6 +230,8 @@ class BracketMatchCard extends StatelessWidget {
 class _WinnerRow extends StatelessWidget {
   final String homeId;
   final String awayId;
+  final Team? homeTeam;
+  final Team? awayTeam;
   final String homeLabel;
   final String awayLabel;
   final String? effectiveWinner;
@@ -237,6 +241,8 @@ class _WinnerRow extends StatelessWidget {
   const _WinnerRow({
     required this.homeId,
     required this.awayId,
+    this.homeTeam,
+    this.awayTeam,
     required this.homeLabel,
     required this.awayLabel,
     required this.effectiveWinner,
@@ -254,6 +260,7 @@ class _WinnerRow extends StatelessWidget {
         Expanded(
           child: _WinnerChip(
             label: homeLabel,
+            team: homeTeam,
             isSelected: effectiveWinner == homeId,
             canSelect: canSelect,
             onTap: () => onSelect(homeId),
@@ -263,6 +270,7 @@ class _WinnerRow extends StatelessWidget {
         Expanded(
           child: _WinnerChip(
             label: awayLabel,
+            team: awayTeam,
             isSelected: effectiveWinner == awayId,
             canSelect: canSelect,
             onTap: () => onSelect(awayId),
@@ -275,12 +283,14 @@ class _WinnerRow extends StatelessWidget {
 
 class _WinnerChip extends StatelessWidget {
   final String label;
+  final Team? team;
   final bool isSelected;
   final bool canSelect;
   final VoidCallback onTap;
 
   const _WinnerChip({
     required this.label,
+    this.team,
     required this.isSelected,
     required this.canSelect,
     required this.onTap,
@@ -289,6 +299,8 @@ class _WinnerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const green = Color(0xFF1A6B3C);
+    final hasFlag = team?.flagAsset.isNotEmpty ?? false;
+
     return GestureDetector(
       onTap: canSelect ? onTap : null,
       child: AnimatedContainer(
@@ -300,8 +312,7 @@ class _WinnerChip extends StatelessWidget {
               : Colors.grey.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color:
-                isSelected ? green : Colors.grey.withValues(alpha: 0.25),
+            color: isSelected ? green : Colors.grey.withValues(alpha: 0.25),
             width: isSelected ? 1.5 : 1,
           ),
         ),
@@ -309,9 +320,20 @@ class _WinnerChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isSelected) ...[
-              const Icon(Icons.emoji_events_outlined,
-                  size: 12, color: green),
+            if (hasFlag) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(2),
+                child: Image.asset(
+                  team!.flagAsset,
+                  width: 22,
+                  height: 14,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(width: 5),
+            ] else if (isSelected) ...[
+              const Icon(Icons.emoji_events_outlined, size: 12, color: green),
               const SizedBox(width: 4),
             ],
             Flexible(
@@ -321,8 +343,7 @@ class _WinnerChip extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 11,
-                  fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? green : Colors.grey[600],
                 ),
               ),
