@@ -137,17 +137,17 @@ const GROUP_MATCHES = {
     ['hai',  'sco',   '2026-06-13', 22, 0,  true],   // ✓ Gillette — Boston
     // Rodada 2
     ['sco',  'mar',   '2026-06-19', 19, 0,  true],   // ✓ Gillette — Boston
-    ['bra',  'hai',   '2026-06-19', 22, 0,  true],   // ✓ Lincoln — Filadélfia
+    ['bra',  'hai',   '2026-06-19', 21, 30, true],   // ✓ Lincoln — Filadélfia
     // Rodada 3
     ['sco',  'bra',   '2026-06-24', 19, 0,  true],   // ✓ Hard Rock — Miami
     ['mar',  'hai',   '2026-06-24', 19, 0,  true],   // ✓ Mercedes-Benz — Atlanta
   ],
   d: [
     // Rodada 1
-    ['usa',  'par',   '2026-06-12', 19, 0,  false],  // ~ Los Angeles
+    ['usa',  'par',   '2026-06-12', 22, 0,  true],   // ✓ SoFi — Los Angeles
     ['aus',  'euroc', '2026-06-12', 22, 0,  false],  // ~ Vancouver
     // Rodada 2
-    ['usa',  'aus',   '2026-06-19', 22, 0,  true],   // ✓ Seattle (Lumen Field)
+    ['usa',  'aus',   '2026-06-19', 16, 0,  true],   // ✓ Seattle (Lumen Field)
     ['euroc','par',   '2026-06-20',  1, 0,  true],   // ✓ São Francisco
     // Rodada 3
     ['euroc','usa',   '2026-06-25', 23, 0,  true],   // ✓ Los Angeles
@@ -188,8 +188,8 @@ const GROUP_MATCHES = {
   ],
   h: [
     // Rodada 1
-    ['esp',  'cpv',   '2026-06-14', 13, 0,  true],   // ✓ Atlanta
-    ['ksa',  'uru',   '2026-06-14', 19, 0,  true],   // ✓ Miami
+    ['esp',  'cpv',   '2026-06-15', 13, 0,  true],   // ✓ Atlanta
+    ['ksa',  'uru',   '2026-06-15', 19, 0,  true],   // ✓ Miami
     // Rodada 2
     ['esp',  'ksa',   '2026-06-21', 13, 0,  true],   // ✓ Atlanta
     ['uru',  'cpv',   '2026-06-21', 19, 0,  true],   // ✓ Miami
@@ -227,7 +227,7 @@ const GROUP_MATCHES = {
     ['por',   'uzb',   '2026-06-23', 14, 0,  true],  // ✓ Houston
     ['col',   'intc1', '2026-06-23', 23, 0,  true],  // ✓ Guadalajara
     // Rodada 3
-    ['col',   'por',   '2026-06-28', 20, 30, true],  // ✓ Miami
+    ['col',   'por',   '2026-06-27', 20, 30, true],  // ✓ Miami
     ['intc1', 'uzb',   '2026-06-28', 20, 30, true],  // ✓ Atlanta
   ],
   l: [
@@ -300,11 +300,18 @@ async function seed() {
   console.log('❓ Criando perguntas extras...');
   const questionsRef = cupRef.collection('extra_questions');
   const defaultQuestions = [
-    { question: 'Quem será o Campeão?',          type: 'team',   order: 1 },
-    { question: 'Quem será o Vice-Campeão?',      type: 'team',   order: 2 },
-    { question: 'Quem será o Artilheiro?',        type: 'player', order: 3 },
-    { question: 'Quem fará o primeiro gol da Final?', type: 'player', order: 4 },
-    { question: 'Quem será o Goleiro menos vazado?',  type: 'player', order: 5 },
+    { question: 'Quem será o Campeão?',                                   type: 'team',   order: 1  },
+    { question: 'Quem será o Vice-Campeão?',                              type: 'team',   order: 2  },
+    { question: 'Artilheiro da Copa',                                     type: 'player', order: 3  },
+    { question: 'Nome do jogador que fará o 1° gol na final',             type: 'player', order: 4  },
+    { question: 'Quem será o Goleiro menos vazado?',                      type: 'player', order: 5  },
+    { question: 'Equipe de melhor campanha na 1ª fase',                   type: 'team',   order: 6  },
+    { question: 'Equipe de pior campanha na 1ª fase',                     type: 'team',   order: 7  },
+    { question: 'Equipe de melhor ataque na 1ª fase',                     type: 'team',   order: 8  },
+    { question: 'Equipe de pior ataque na 1ª fase',                       type: 'team',   order: 9  },
+    { question: 'Quem fará o primeiro gol do Brasil vs Marrocos?',        type: 'player', order: 10 },
+    { question: 'Quem fará o primeiro gol do Brasil vs Haiti?',           type: 'player', order: 11 },
+    { question: 'Quem fará o primeiro gol do Brasil vs Escócia?',        type: 'player', order: 12 },
   ];
   for (const q of defaultQuestions) {
     await questionsRef.add(q);
