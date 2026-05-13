@@ -135,6 +135,11 @@ class BracketMatchCard extends StatelessWidget {
             onDecrementAway: () => onDecrement(1),
           );
 
+    final homeIsLoser =
+        effectiveWinner != null && effectiveWinner != resolved.homeTeamId;
+    final awayIsLoser =
+        effectiveWinner != null && effectiveWinner != resolved.awayTeamId;
+
     return Column(
       children: [
         Text(phaseLabel,
@@ -143,19 +148,27 @@ class BracketMatchCard extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: TeamBlock(
-                team: home,
-                fallbackLabel: homeLabel,
-                subtitle: homeSubtitle,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: homeIsLoser ? 0.35 : 1.0,
+                child: TeamBlock(
+                  team: home,
+                  fallbackLabel: homeLabel,
+                  subtitle: homeSubtitle,
+                ),
               ),
             ),
             scoreWidget,
             Expanded(
-              child: TeamBlock(
-                team: away,
-                alignRight: true,
-                fallbackLabel: awayLabel,
-                subtitle: awaySubtitle,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 200),
+                opacity: awayIsLoser ? 0.35 : 1.0,
+                child: TeamBlock(
+                  team: away,
+                  alignRight: true,
+                  fallbackLabel: awayLabel,
+                  subtitle: awaySubtitle,
+                ),
               ),
             ),
           ],
