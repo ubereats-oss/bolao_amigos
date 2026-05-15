@@ -202,7 +202,7 @@ service cloud.firestore {
       allow delete: if isGroupAdmin(groupId);
 
       match /members/{userId} {
-        allow read: if isMember(groupId);
+        allow read: if isMember(groupId) || (isAuth() && request.auth.uid == userId);
         allow create: if validAdminMemberCreate(groupId, userId)
           || validInviteMemberCreate(groupId, userId);
         allow update: if false;
