@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>212214398916-0cpua26sc9lbs7d2i9pu9k2kbvcjvfnj.apps.googleusercontent.com</string>
+	<string>212214398916-j17cmqger48mjdvf3ithep459p2aabuj.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.212214398916-0cpua26sc9lbs7d2i9pu9k2kbvcjvfnj</string>
+	<string>com.googleusercontent.apps.212214398916-j17cmqger48mjdvf3ithep459p2aabuj</string>
 	<key>API_KEY</key>
 	<string>AIzaSyBVIjPKmxcaiVN1x0zEQOJVZUd8CqfOMRE</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.salles.bolao</string>
+	<string>com.salles.bolaocopadomundo</string>
 	<key>PROJECT_ID</key>
 	<string>bolao-copa-do-mundo-salles</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:212214398916:ios:a88e33e66576c416b26e91</string>
+	<string>1:212214398916:ios:b9d3161018a1be4eb26e91</string>
 </dict>
 </plist>
