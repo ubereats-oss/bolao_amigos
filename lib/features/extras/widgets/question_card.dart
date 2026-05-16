@@ -16,6 +16,7 @@ class QuestionCard extends StatelessWidget {
   final String? autoFillTeamId;
   final VoidCallback? onAutoFill;
   final Future<void> Function(String answer) onSave;
+  final String? lockedTeamId;
 
   const QuestionCard({
     super.key,
@@ -28,6 +29,7 @@ class QuestionCard extends StatelessWidget {
     this.autoFillTeamId,
     this.onAutoFill,
     required this.onSave,
+    this.lockedTeamId,
   });
 
   Future<void> _abrirSelecao(BuildContext context) async {
@@ -63,7 +65,7 @@ class QuestionCard extends StatelessWidget {
                   .toList()
               : players,
           selectedPlayerId: prediction?.answer,
-          lockedTeamId: question.teamFilter,
+          lockedTeamId: lockedTeamId ?? question.teamFilter,
         ),
       );
       if (result != null) await onSave(result);

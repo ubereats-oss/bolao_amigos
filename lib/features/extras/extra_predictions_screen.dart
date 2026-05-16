@@ -198,6 +198,19 @@ class _ExtraPredictionsScreenState extends State<ExtraPredictionsScreen> {
     setState(() => _predictions[questionId] = prediction);
   }
 
+  // Se a pergunta menciona "X vs Y", retorna o ID do time X (o que aparece antes de " vs ")
+  String? _resolveTeamFilter(ExtraQuestion q) {
+    if (q.teamFilter != null) return q.teamFilter;
+    if (q.type != ExtraQuestionType.player) return null;
+    final vsIdx = q.question.indexOf(' vs ');
+    if (vsIdx == -1) return null;
+    final beforeVs = q.question.substring(0, vsIdx);
+    for (final team in _teams) {
+      if (beforeVs.contains(team.name)) return team.id;
+    }
+    return null;
+  }
+
   Set<String> _teamsJaEscolhidos(String questionIdAtual) {
     final Set<String> usados = {};
     for (final q in _questions) {
@@ -264,6 +277,7 @@ class _ExtraPredictionsScreenState extends State<ExtraPredictionsScreen> {
                     ? _teamsJaEscolhidos(question.id)
                     : {},
                 autoFillTeamId: autoFillTeamId,
+                lockedTeamId: _resolveTeamFilter(question),
                 onSave: (answer) => _salvar(question.id, answer),
                 onAutoFill: autoFillTeamId != null && !_locked
                     ? () => _salvar(question.id, autoFillTeamId)
