@@ -6,6 +6,7 @@ class ExtraQuestion {
   final ExtraQuestionType type;
   final int order;
   final String? positionFilter;
+  final String? teamFilter;
   final String? correctAnswer;
 
   const ExtraQuestion({
@@ -14,6 +15,7 @@ class ExtraQuestion {
     required this.type,
     required this.order,
     this.positionFilter,
+    this.teamFilter,
     this.correctAnswer,
   });
 
@@ -26,6 +28,7 @@ class ExtraQuestion {
           : ExtraQuestionType.player,
       order: data['order'] ?? 0,
       positionFilter: data['position_filter'],
+      teamFilter: data['team_filter'],
       correctAnswer: data['correct_answer'],
     );
   }
@@ -36,6 +39,7 @@ class ExtraQuestion {
       'type': type == ExtraQuestionType.team ? 'team' : 'player',
       'order': order,
       if (positionFilter != null) 'position_filter': positionFilter,
+      if (teamFilter != null) 'team_filter': teamFilter,
       if (correctAnswer != null) 'correct_answer': correctAnswer,
     };
   }

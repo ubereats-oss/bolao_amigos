@@ -7,6 +7,7 @@ class PlayerSelectionSheet extends StatefulWidget {
   final List<Team> teams;
   final List<Player> players;
   final String? selectedPlayerId;
+  final String? lockedTeamId;
 
   const PlayerSelectionSheet({
     super.key,
@@ -14,6 +15,7 @@ class PlayerSelectionSheet extends StatefulWidget {
     required this.teams,
     required this.players,
     required this.selectedPlayerId,
+    this.lockedTeamId,
   });
 
   @override
@@ -31,7 +33,9 @@ class _PlayerSelectionSheetState extends State<PlayerSelectionSheet> {
   @override
   void initState() {
     super.initState();
-    if (widget.selectedPlayerId != null) {
+    if (widget.lockedTeamId != null) {
+      _teamFiltro = widget.lockedTeamId;
+    } else if (widget.selectedPlayerId != null) {
       final player = widget.players.firstWhere(
         (p) => p.id == widget.selectedPlayerId,
         orElse: () => const Player(id: '', name: '', teamId: '', position: ''),
@@ -112,50 +116,76 @@ class _PlayerSelectionSheetState extends State<PlayerSelectionSheet> {
                 textAlign: TextAlign.center),
           ),
           const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                if (teamSelecionado != null &&
-                    teamSelecionado.flagAsset.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: Image.asset(teamSelecionado.flagAsset,
-                          width: 36,
-                          height: 24,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox()),
+          if (widget.lockedTeamId != null && teamSelecionado != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  if (teamSelecionado.flagAsset.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.asset(teamSelecionado.flagAsset,
+                            width: 36,
+                            height: 24,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox()),
+                      ),
+                    ),
+                  Text(
+                    teamSelecionado.name,
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  if (teamSelecionado != null &&
+                      teamSelecionado.flagAsset.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.asset(teamSelecionado.flagAsset,
+                            width: 36,
+                            height: 24,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox()),
+                      ),
+                    ),
+                  Expanded(
+                    child: DropdownButtonFormField<String?>(
+                      initialValue: _teamFiltro,
+                      decoration: const InputDecoration(
+                        labelText: 'Selecione a seleção',
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                            value: null, child: Text('Todas as seleções')),
+                        ..._teamsOrdenados.map((t) => DropdownMenuItem(
+                              value: t.id,
+                              child: Text(t.name),
+                            )),
+                      ],
+                      onChanged: (v) => setState(() {
+                        _teamFiltro = v;
+                        _busca = '';
+                        _searchController.clear();
+                      }),
                     ),
                   ),
-                Expanded(
-                  child: DropdownButtonFormField<String?>(
-                    initialValue: _teamFiltro,
-                    decoration: const InputDecoration(
-                      labelText: 'Selecione a seleção',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: [
-                      const DropdownMenuItem(
-                          value: null, child: Text('Todas as seleções')),
-                      ..._teamsOrdenados.map((t) => DropdownMenuItem(
-                            value: t.id,
-                            child: Text(t.name),
-                          )),
-                    ],
-                    onChanged: (v) => setState(() {
-                      _teamFiltro = v;
-                      _busca = '';
-                      _searchController.clear();
-                    }),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

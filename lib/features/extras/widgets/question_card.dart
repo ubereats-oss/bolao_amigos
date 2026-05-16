@@ -63,6 +63,7 @@ class QuestionCard extends StatelessWidget {
                   .toList()
               : players,
           selectedPlayerId: prediction?.answer,
+          lockedTeamId: question.teamFilter,
         ),
       );
       if (result != null) await onSave(result);

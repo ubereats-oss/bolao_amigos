@@ -309,9 +309,9 @@ async function seed() {
     { question: 'Equipe de pior campanha na 1ª fase',                     type: 'team',   order: 7  },
     { question: 'Equipe de melhor ataque na 1ª fase',                     type: 'team',   order: 8  },
     { question: 'Equipe de pior ataque na 1ª fase',                       type: 'team',   order: 9  },
-    { question: 'Quem fará o primeiro gol do Brasil vs Marrocos?',        type: 'player', order: 10 },
-    { question: 'Quem fará o primeiro gol do Brasil vs Haiti?',           type: 'player', order: 11 },
-    { question: 'Quem fará o primeiro gol do Brasil vs Escócia?',        type: 'player', order: 12 },
+    { question: 'Quem fará o primeiro gol do Brasil vs Marrocos?',        type: 'player', order: 10, team_filter: 'BRA' },
+    { question: 'Quem fará o primeiro gol do Brasil vs Haiti?',           type: 'player', order: 11, team_filter: 'BRA' },
+    { question: 'Quem fará o primeiro gol do Brasil vs Escócia?',        type: 'player', order: 12, team_filter: 'BRA' },
   ];
   for (const q of defaultQuestions) {
     await questionsRef.add(q);
